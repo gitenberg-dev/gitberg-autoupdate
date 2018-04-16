@@ -24,6 +24,7 @@ setup(name='gitberg',
       url='https://github.com/gitenberg-dev/gitberg-autoupdate',
       packages=['gitenberg.autoupdate'],
       include_package_data=True,
+      scripts=['bin/webhook_server'],
       setup_requires=[
         'sh>=1',
       ],
