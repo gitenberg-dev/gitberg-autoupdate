@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Usage:
+    webhook_server --port <port>
+
+Arguments:
+    <port> -- The port to run the server on.
+
+Options:
+    -v --logging (debug | info | error)
+"""
+
+import logging
+import BaseHTTPServer
+from docopt import docopt
+import json
+
+from gitenberg.autoupdate import __version__
+
+
+FORMAT = '%(asctime)-15s %(message)s'
+
+def setup_logging(arguments):
+    """ creates a logger with our hard-coded configuration
+    takes: a docopt arguments object instance
+    """
+    logger = logging.getLogger('')
+    logging.basicConfig(filename='./gitburg.log', level=logging.DEBUG, format=FORMAT)
+    #stdout_handler = logging.StreamHandler(sys.stdout)
+    #logger.addHandler(stdout_handler)
+
+
+    if ('--logging' or '-v') in arguments:
+        # if
+        log_level = arguments['--logging']
+        if log_level == 'debug':
+            logger.setLevel(logging.DEBUG)
+        elif log_level == 'info':
+            logger.setLevel(logging.INFO)
+        elif log_level == 'error':
+            logger.setLevel(logging.ERROR)
+
+    return logger
+
+class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+  def do_POST(self):
+    if self.path != '/payload':
+      self.send_error(404)
+      return
+
+    # TODO(Brian): https://developer.github.com/webhooks/securing/
+
+    content_length = int(self.headers['Content-Length'])
+    payload_string = self.rfile.read(content_length)
+    try:
+      payload = json.loads(payload_string)
+    except ValueError:
+      self.send_error(400)
+      return
+    print('Payload is %s' % repr(payload))
+
+    self.send_response(200)
+    self.end_headers()
+
+if __name__ == '__main__':
+    arguments = docopt(__doc__, version=__version__)
+
+    logger = setup_logging(arguments)
+
+    port = int(arguments.get('<port>', '80'))
+
+    server = BaseHTTPServer.HTTPServer(('0.0.0.0', port), RequestHandler)
+    try:
+      server.serve_forever()
+    except KeyboardInterrupt:
+      pass
+    server.server_close()
