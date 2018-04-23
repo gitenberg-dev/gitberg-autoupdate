@@ -4,6 +4,9 @@ from gitenberg import book
 
 import requests
 
+GITENSITE_YAML_URL = "gitenberg.org/books/post"
+# header: x-gitenberg-secret
+
 # amazon SQS says a repo has updates
 # prerequisite: repo_name is valid, i.e. Book(repo_name) succeeds
 # prerequisite: need config library_path
@@ -11,7 +14,6 @@ import requests
 # processQueuedUpdate("Chatterbox-1906_24324")
 def processQueuedUpdate(repo_name, recursed=0):
     # intialize book
-    # b = actions.get_cloned_book(repo_name)
     b = actions.get_book(repo_name)
     b.clone_from_github() # if no local version, clones
 
@@ -23,14 +25,11 @@ def processQueuedUpdate(repo_name, recursed=0):
     repo.remote('origin').pull()
     b.parse_book_metadata() # in case this changed
 
-    # b.fetch() # bad, this fetches from PG, not from git
-    # b.make() # bad idea, doesn't check if files already exist
-
     b.add_covers() # checks for covers, if none, makes one, adds to metadata
-    # todo make this cover accessible to website? how?
 
     b.save_meta() # save the new metadata in yaml format
     # todo send metadata to website
+    # todo add _repo = repo_name
     # response = requests.post(GITENSITE_YAML_URL, unicode(b.meta)) # convert to json?
 
     # todo build ebook?
