@@ -15,6 +15,9 @@ import logging
 import BaseHTTPServer
 from docopt import docopt
 import json
+import hmac
+import hashlib
+import os
 
 from gitenberg.autoupdate import __version__
 
@@ -43,16 +46,31 @@ def setup_logging(arguments):
 
     return logger
 
+GITHUB_WEBHOOK_SECRET = os.environ['GITHUB_WEBHOOK_SECRET']
+
+def _verify_signature(body, signature):
+  signature_check = 'sha1=' + hmac.new(GITHUB_WEBHOOK_SECRET, body, hashlib.sha1).hexdigest()
+  return not hmac.compare_digest(signature, signature_check)
+
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   def do_POST(self):
     if self.path != '/payload':
       self.send_error(404)
       return
 
-    # TODO(Brian): https://developer.github.com/webhooks/securing/
+    if 'Content-Length' not in self.headers:
+      self.send_error(400)
+      return
+    if 'X-Hub-Signature' not in self.headers:
+      self.send_error(400)
+      return
 
     content_length = int(self.headers['Content-Length'])
     payload_string = self.rfile.read(content_length)
+    if _verify_signature(payload_string, self.headers['X-Hub-Signature']):
+      self.send_error(500)
+      return
+
     try:
       payload = json.loads(payload_string)
     except ValueError:
