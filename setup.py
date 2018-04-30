@@ -35,6 +35,7 @@ setup(name='gitberg',
           'docopt>=0.6',
           'six==1.10.0',
           'PyYAML==3.11',
+          'boto3',
       ],
       test_suite='nose.collector',
       tests_require=[

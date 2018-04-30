@@ -11,15 +11,16 @@ Options:
     -v --logging (debug | info | error)
 """
 
-import logging
 import BaseHTTPServer
-from docopt import docopt
-import json
-import hmac
 import hashlib
+import hmac
+import json
+import logging
 import os
 
-from gitenberg.autoupdate import __version__
+from docopt import docopt
+
+from gitenberg.autoupdate import __version__, queue
 
 
 FORMAT = '%(asctime)-15s %(message)s'
@@ -76,7 +77,9 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     except ValueError:
       self.send_error(400)
       return
-    print('Payload is %s' % repr(payload))
+
+    repo = payload[u'repository'][u'full_name']
+    queue.queue_resource().send_message(MessageBody=repo)
 
     self.send_response(200)
     self.end_headers()
