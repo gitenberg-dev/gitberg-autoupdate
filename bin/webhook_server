@@ -11,12 +11,16 @@ Options:
     -v --logging (debug | info | error)
 """
 
-import logging
 import BaseHTTPServer
-from docopt import docopt
+import hashlib
+import hmac
 import json
+import logging
+import os
 
-from gitenberg.autoupdate import __version__
+from docopt import docopt
+
+from gitenberg.autoupdate import __version__, queue
 
 
 FORMAT = '%(asctime)-15s %(message)s'
@@ -43,36 +47,53 @@ def setup_logging(arguments):
 
     return logger
 
+GITHUB_WEBHOOK_SECRET = os.environ['GITHUB_WEBHOOK_SECRET']
+
+def _verify_signature(body, signature):
+  signature_check = 'sha1=' + hmac.new(GITHUB_WEBHOOK_SECRET, body, hashlib.sha1).hexdigest()
+  return not hmac.compare_digest(signature, signature_check)
+
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   def do_POST(self):
     if self.path != '/payload':
       self.send_error(404)
       return
 
-    # TODO(Brian): https://developer.github.com/webhooks/securing/
+    if 'Content-Length' not in self.headers:
+      self.send_error(400)
+      return
+    if 'X-Hub-Signature' not in self.headers:
+      self.send_error(400)
+      return
 
     content_length = int(self.headers['Content-Length'])
     payload_string = self.rfile.read(content_length)
+    if _verify_signature(payload_string, self.headers['X-Hub-Signature']):
+      self.send_error(500)
+      return
+
     try:
       payload = json.loads(payload_string)
     except ValueError:
       self.send_error(400)
       return
-    print('Payload is %s' % repr(payload))
+
+    repo = payload[u'repository'][u'full_name']
+    queue.queue_resource().send_message(MessageBody=repo)
 
     self.send_response(200)
     self.end_headers()
 
 if __name__ == '__main__':
-    arguments = docopt(__doc__, version=__version__)
+  arguments = docopt(__doc__, version=__version__)
 
-    logger = setup_logging(arguments)
+  logger = setup_logging(arguments)
 
-    port = int(arguments.get('<port>', '80'))
+  port = int(arguments.get('<port>', '80'))
 
-    server = BaseHTTPServer.HTTPServer(('0.0.0.0', port), RequestHandler)
-    try:
-      server.serve_forever()
-    except KeyboardInterrupt:
-      pass
-    server.server_close()
+  server = BaseHTTPServer.HTTPServer(('0.0.0.0', port), RequestHandler)
+  try:
+    server.serve_forever()
+  except KeyboardInterrupt:
+    pass
+  server.server_close()

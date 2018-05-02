@@ -17,6 +17,12 @@ To run project in development mode clone the project and do:
 
     python setup.py develop
 
+The following environment variables must be set to the appropriate values:
+  * `GITHUB_WEBHOOK_SECRET`
+  * `AWS_DEFAULT_REGION`
+  * `AWS_ACCESS_KEY_ID`
+  * `AWS_SECRET_ACCESS_KEY`
+
 ## Testing
 
 To run project tests do:
