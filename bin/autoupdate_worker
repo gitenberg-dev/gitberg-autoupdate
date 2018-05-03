@@ -1,0 +1,35 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Usage:
+    autoupdate_worker [options]
+
+Arguments:
+
+Options:
+    --logging (debug | info | error)
+    --log_file <log_file> also log to a file
+"""
+
+import logging
+
+from docopt import docopt
+
+from gitenberg.autoupdate import __version__, queue, util
+
+def process_queue_entries():
+  while True:
+    for message in queue.queue_resource().receive_messages(
+        MaxNumberOfMessages=3, WaitTimeSeconds=20):
+      # TODO(Marc): Process the repository, and only take the below if
+      # statement if it succeeds.
+      logging.info('Got a message for %s' % message.body)
+      if True:
+        message.delete()
+
+if __name__ == '__main__':
+  arguments = docopt(__doc__, version=__version__)
+
+  util.setup_logging(arguments)
+
+  process_queue_entries()
