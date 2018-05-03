@@ -2,34 +2,64 @@
 # -*- coding: utf-8 -*-
 """
 Usage:
-    autoupdate_worker [options]
+    autoupdate_worker --port <port> [options]
 
 Arguments:
+    <port> -- The port to run the server on.
 
 Options:
     --logging (debug | info | error)
     --log_file <log_file> also log to a file
 """
 
+import BaseHTTPServer
 import logging
 
 from docopt import docopt
 
 from gitenberg.autoupdate import __version__, queue, util
 
-def process_queue_entries():
-  while True:
-    for message in queue.queue_resource().receive_messages(
-        MaxNumberOfMessages=3, WaitTimeSeconds=20):
-      # TODO(Marc): Process the repository, and only take the below if
-      # statement if it succeeds.
-      logging.info('Got a message for %s' % message.body)
-      if True:
-        message.delete()
+class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+  def do_GET(self):
+    if self.path != '/health':
+      self.send_error(404)
+      return
+
+    # Claim we're alive and healthy if we're responding to this GET.
+    self.send_response(200)
+    self.end_headers()
+
+  def do_POST(self):
+    if self.path != '/do_update':
+      self.send_error(404)
+      return
+
+    if 'Content-Length' not in self.headers:
+      self.send_error(400)
+      return
+
+    content_length = int(self.headers['Content-Length'])
+    payload_string = self.rfile.read(content_length)
+    logging.info('Got a message for %s' % payload_string)
+    # TODO(Marc): Process the repository, and take the below if
+    # statement if it fails.
+    if False:
+      self.send_error(500)
+      return
+
+    self.send_response(200)
+    self.end_headers()
 
 if __name__ == '__main__':
   arguments = docopt(__doc__, version=__version__)
 
   util.setup_logging(arguments)
 
-  process_queue_entries()
+  port = int(arguments.get('<port>', '80'))
+
+  server = BaseHTTPServer.HTTPServer(('0.0.0.0', port), RequestHandler)
+  try:
+    server.serve_forever()
+  except KeyboardInterrupt:
+    pass
+  server.server_close()

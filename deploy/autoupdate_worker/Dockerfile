@@ -12,4 +12,4 @@ WORKDIR /usr/src/app
 COPY . .
 RUN python ./setup.py install
 
-CMD service cron start && exec autoupdate_worker --log_file /var/log/gitenberg/autoupdate_worker
+CMD service cron start && exec autoupdate_worker --port 80 --log_file /var/log/gitenberg/autoupdate_worker
