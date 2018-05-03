@@ -30,6 +30,15 @@ def _verify_signature(body, signature):
   return not hmac.compare_digest(signature, signature_check)
 
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+  def do_GET(self):
+    if self.path != '/health':
+      self.send_error(404)
+      return
+
+    # Claim we're alive and healthy if we're responding to this GET.
+    self.send_response(200)
+    self.end_headers()
+
   def do_POST(self):
     if self.path != '/payload':
       self.send_error(404)
