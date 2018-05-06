@@ -1,0 +1,5 @@
+/var/log/gitenberg/webhook_server {
+  rotate 12
+  daily
+  olddir rotated
+}

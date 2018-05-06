@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 """
 Usage:
-    webhook_server --port <port>
+    webhook_server --port <port> [options]
 
 Arguments:
     <port> -- The port to run the server on.
 
 Options:
-    -v --logging (debug | info | error)
+    --logging (debug | info | error)
+    --log_file <log_file> also log to a file
 """
 
 import BaseHTTPServer
@@ -20,32 +21,7 @@ import os
 
 from docopt import docopt
 
-from gitenberg.autoupdate import __version__, queue
-
-
-FORMAT = '%(asctime)-15s %(message)s'
-
-def setup_logging(arguments):
-    """ creates a logger with our hard-coded configuration
-    takes: a docopt arguments object instance
-    """
-    logger = logging.getLogger('')
-    logging.basicConfig(filename='./gitburg.log', level=logging.DEBUG, format=FORMAT)
-    #stdout_handler = logging.StreamHandler(sys.stdout)
-    #logger.addHandler(stdout_handler)
-
-
-    if ('--logging' or '-v') in arguments:
-        # if
-        log_level = arguments['--logging']
-        if log_level == 'debug':
-            logger.setLevel(logging.DEBUG)
-        elif log_level == 'info':
-            logger.setLevel(logging.INFO)
-        elif log_level == 'error':
-            logger.setLevel(logging.ERROR)
-
-    return logger
+from gitenberg.autoupdate import __version__, queue, util
 
 GITHUB_WEBHOOK_SECRET = os.environ['GITHUB_WEBHOOK_SECRET']
 
@@ -54,6 +30,15 @@ def _verify_signature(body, signature):
   return not hmac.compare_digest(signature, signature_check)
 
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+  def do_GET(self):
+    if self.path != '/health':
+      self.send_error(404)
+      return
+
+    # Claim we're alive and healthy if we're responding to this GET.
+    self.send_response(200)
+    self.end_headers()
+
   def do_POST(self):
     if self.path != '/payload':
       self.send_error(404)
@@ -79,6 +64,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       return
 
     repo = payload[u'repository'][u'full_name']
+    logging.info('Sending message for %s' % repo)
     queue.queue_resource().send_message(MessageBody=repo)
 
     self.send_response(200)
@@ -87,7 +73,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 if __name__ == '__main__':
   arguments = docopt(__doc__, version=__version__)
 
-  logger = setup_logging(arguments)
+  util.setup_logging(arguments)
 
   port = int(arguments.get('<port>', '80'))
 

@@ -28,3 +28,35 @@ The following environment variables must be set to the appropriate values:
 To run project tests do:
 
     python setup.py test
+
+## Deployment
+
+Both servers run in an AWS Elastic Beanstalk (EBS) application. `webhook_server`
+runs as a "Web server environment", and `autoupdate_worker` runs as a
+"Worker environment".
+
+Configure the following environment variables (under Configuration > Software > Environment properties):
+  * `GITHUB_WEBHOOK_SECRET`
+  * `AWS_DEFAULT_REGION`
+  * Note that you *must* set these *all* when first creating the environment.
+    Otherwise, it won't start and is then apparently unrecoverable.
+  * Don't set `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY`. The EBS instance
+    role will be picked up automatically instead.
+
+The EBS environment must be configured as follows:
+  * Virtual machine instance profile: elasticbeanstalk-ec2-autoupdate
+  * Health check path (under Monitoring): /health
+  * Environment type: load balancing
+  * Load balancer: add a HTTPS listener on 443 which delivers to HTTP on 80, using an appropriate SSL certificate
+
+### Local mock deployment
+
+To run one of the servers locally in a Docker container identical to the one
+which will be used by EBS, use these commands:
+```console
+$ docker build -f deploy/webhook_server/Dockerfile -t webhook_server ./ && docker run -i --env-file test_env -p 127.0.0.1:1234:80 webhook_server
+$ docker build -f deploy/autoupdate_worker/Dockerfile -t autoupdate_worker ./ && docker run -i --env-file test_env autoupdate_worker
+```
+
+These commands rely on a file called `test_env` with the environment variables
+specified above under [Development](#development) to be configured.
