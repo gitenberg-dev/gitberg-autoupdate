@@ -13,11 +13,61 @@ Options:
 """
 
 import BaseHTTPServer
+import errno
 import logging
+import os.path
+import shutil
+import tarfile
+import time
 
 from docopt import docopt
+import requests
 
 from gitenberg.autoupdate import __version__, queue, util
+
+RDF_URL = "https://www.gutenberg.org/cache/epub/feeds/rdf-files.tar.bz2"
+RDF_PATH = "/tmp/rdf.tar.bz2"
+RDF_EXTRACT_PATH = "/tmp/extracted_rdf"
+# 1 day
+RDF_MAX_AGE = 60 * 60 * 24
+
+def download_rdf():
+  """Ensures a fresh-enough RDF file is downloaded and extracted.
+
+  Returns True on error."""
+
+  if (os.path.exists(RDF_PATH) and
+      (time.time() - os.path.getmtime(RDF_PATH)) < RDF_MAX_AGE):
+    return False
+
+  logging.info('Re-downloading RDF library from %s' % RDF_URL)
+  try:
+    shutil.rmtree(RDF_EXTRACT_PATH)
+  except OSError as e:
+    # Ignore not finding the directory to remove.
+    if e.errno != errno.ENOENT:
+      raise
+
+  try:
+    with open(RDF_PATH, 'w') as f:
+      with requests.get(RDF_URL, stream=True) as r:
+        shutil.copyfileobj(r.raw, f)
+  except requests.exceptions.RequestException as e:
+    logging.error(e)
+    return True
+
+  try:
+    with tarfile.open(RDF_PATH, 'r') as f:
+      f.extractall(RDF_EXTRACT_PATH)
+  except tarfile.TarError as e:
+    logging.error(e)
+    try:
+      os.unlink(RDF_PATH)
+    except:
+      pass
+    return True
+
+  return False
 
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   def do_GET(self):
@@ -36,6 +86,10 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     if 'Content-Length' not in self.headers:
       self.send_error(400)
+      return
+
+    if download_rdf():
+      self.send_error(500)
       return
 
     content_length = int(self.headers['Content-Length'])
