@@ -9,7 +9,9 @@ COPY deploy/logrotate-gitberg-autoupdate /etc/logrotate.d/
 
 WORKDIR /usr/src/app
 
+# This is slow, so avoid having to do it every time.
+RUN pip install boto3
 COPY . .
-RUN python ./setup.py install
+RUN pip install .
 
 CMD service cron start && exec webhook_server --port 80 --log_file /var/log/gitenberg/webhook_server

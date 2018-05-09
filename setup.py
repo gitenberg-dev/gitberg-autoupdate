@@ -6,7 +6,7 @@ import re
 from setuptools import setup
 
 
-with open('gitenberg/autoupdate/__init__.py', 'r') as fd:
+with open('gitenberg_autoupdate/__init__.py', 'r') as fd:
     reg = re.compile(r'__version__ = [\'"]([^\'"]*)[\'"]')
     for line in fd:
         m = reg.match(line)
@@ -14,7 +14,7 @@ with open('gitenberg/autoupdate/__init__.py', 'r') as fd:
             __version__ = m.group(1)
             break
 
-setup(name='gitberg',
+setup(name='gitberg.autoupdate',
       version=__version__,
       description="A program for updating information within the GITenberg books project",
       long_description=open('README.md').read(),
@@ -22,7 +22,7 @@ setup(name='gitberg',
       author='Brian Silverman and Marc Gotliboym',
       author_email='bsilver16384@gmail.com and mgotliboym@gmail.com',
       url='https://github.com/gitenberg-dev/gitberg-autoupdate',
-      packages=['gitenberg', 'gitenberg.autoupdate'],
+      packages=['gitenberg_autoupdate'],
       include_package_data=True,
       scripts=['bin/webhook_server', 'bin/autoupdate_worker'],
       setup_requires=[
@@ -36,6 +36,7 @@ setup(name='gitberg',
           'six==1.10.0',
           'PyYAML==3.11',
           'boto3',
+          'gitberg',
       ],
       test_suite='nose.collector',
       tests_require=[
@@ -48,4 +49,7 @@ setup(name='gitberg',
           'Programming Language :: Python :: 2.7',
       ],
       keywords="books ebooks gitenberg gutenberg epub metadata",
+      dependency_links=[
+          "https://github.com/gitenberg-dev/gitberg/archive/676709fd1ffd425ca81161b0e99236c30fe667f8.zip#egg=gitberg-0.3.1",
+      ],
       )

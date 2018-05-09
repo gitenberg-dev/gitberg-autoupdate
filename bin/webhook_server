@@ -21,7 +21,7 @@ import os
 
 from docopt import docopt
 
-from gitenberg.autoupdate import __version__, queue, util
+from gitenberg_autoupdate import __version__, queue, util
 
 GITHUB_WEBHOOK_SECRET = os.environ['GITHUB_WEBHOOK_SECRET']
 

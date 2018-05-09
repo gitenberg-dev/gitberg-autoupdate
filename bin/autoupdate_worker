@@ -23,7 +23,7 @@ import time
 from docopt import docopt
 import requests
 
-from gitenberg.autoupdate import __version__, queue, util
+from gitenberg_autoupdate import __version__, queue, util
 
 RDF_URL = "https://www.gutenberg.org/cache/epub/feeds/rdf-files.tar.bz2"
 RDF_PATH = "/tmp/rdf.tar.bz2"
