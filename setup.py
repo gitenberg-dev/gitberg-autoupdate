@@ -36,7 +36,7 @@ setup(name='gitberg.autoupdate',
           'six==1.10.0',
           'PyYAML==3.11',
           'boto3',
-          'gitberg',
+          'gitberg==dev',
       ],
       test_suite='nose.collector',
       tests_require=[
@@ -50,6 +50,6 @@ setup(name='gitberg.autoupdate',
       ],
       keywords="books ebooks gitenberg gutenberg epub metadata",
       dependency_links=[
-          "https://github.com/gitenberg-dev/gitberg/archive/676709fd1ffd425ca81161b0e99236c30fe667f8.zip#egg=gitberg-0.3.1",
+          "https://github.com/gitenberg-dev/gitberg/archive/50fa39caeaa89e32031ca0eef21091bb798739fc.zip#egg=gitberg-dev",
       ],
       )
