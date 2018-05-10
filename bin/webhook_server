@@ -20,6 +20,7 @@ import logging
 import os
 
 from docopt import docopt
+from gitenberg.util import catalog
 
 from gitenberg_autoupdate import __version__, queue, util
 
@@ -32,6 +33,7 @@ def _verify_signature(body, signature):
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   def do_GET(self):
     if self.path != '/health':
+      logging.info('Unknown GET endpoint %s' % self.path)
       self.send_error(404)
       return
 
@@ -41,31 +43,62 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
   def do_POST(self):
     if self.path != '/payload':
+      logging.info('Unknown POST endpoint %s' % self.path)
       self.send_error(404)
       return
 
     if 'Content-Length' not in self.headers:
+      logging.info('No Content-Length')
       self.send_error(400)
       return
     if 'X-Hub-Signature' not in self.headers:
+      logging.info('No signature')
+      self.send_error(400)
+      return
+    if 'X-GitHub-Event' not in self.headers:
+      logging.info('No event')
       self.send_error(400)
       return
 
     content_length = int(self.headers['Content-Length'])
     payload_string = self.rfile.read(content_length)
     if _verify_signature(payload_string, self.headers['X-Hub-Signature']):
+      logging.info('Error validating signature')
       self.send_error(500)
+      return
+
+    if self.headers['X-GitHub-Event'] != 'push':
+      # Just ignore all other hook types.
+      logging.info('Unknown event %s' % self.headers['X-GitHub-Event'])
+      self.send_response(200)
+      self.end_headers()
       return
 
     try:
       payload = json.loads(payload_string)
     except ValueError:
+      logging.info('Error parsing JSON')
+      self.send_error(400)
+      return
+
+    if u'repository' not in payload:
+      logging.info('No repository in %s' % json.dumps(payload_string))
+      self.send_error(400)
+      return
+    if u'full_name' not in payload[u'repository']:
+      logging.info('No full_name in %s' % json.dumps(payload[u'repository']))
       self.send_error(400)
       return
 
     repo = payload[u'repository'][u'full_name']
-    logging.info('Sending message for %s' % repo)
+    if repo not in catalog.get_all_repo_names():
+      logging.info('Unknown repo %s' % repo)
+      self.send_response(200)
+      self.end_headers()
+      return
+
     queue.queue_resource().send_message(MessageBody=repo)
+    logging.info('Sent message for %s' % repo)
 
     self.send_response(200)
     self.end_headers()
