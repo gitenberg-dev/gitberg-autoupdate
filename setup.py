@@ -24,7 +24,7 @@ setup(name='gitberg.autoupdate',
       url='https://github.com/gitenberg-dev/gitberg-autoupdate',
       packages=['gitenberg_autoupdate'],
       include_package_data=True,
-      scripts=['bin/webhook_server', 'bin/autoupdate_worker'],
+      scripts=['bin/webhook_server', 'bin/autoupdate_worker', 'bin/queue_manager'],
       setup_requires=[
         'sh>=1',
       ],
@@ -50,6 +50,6 @@ setup(name='gitberg.autoupdate',
       ],
       keywords="books ebooks gitenberg gutenberg epub metadata",
       dependency_links=[
-          "https://github.com/gitenberg-dev/gitberg/archive/50fa39caeaa89e32031ca0eef21091bb798739fc.zip#egg=gitberg-dev",
+          "https://github.com/gitenberg-dev/gitberg/archive/6966ca17cedffb6ba3409dbc4891130ec753340e.zip#egg=gitberg-dev",
       ],
       )
