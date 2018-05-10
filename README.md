@@ -38,6 +38,10 @@ runs as a "Web server environment", and `autoupdate_worker` runs as a
 Configure the following environment variables (under Configuration > Software > Environment properties) for `webhook_server` environments:
   * `GITHUB_WEBHOOK_SECRET`
   * `AWS_DEFAULT_REGION`
+  * `GITENBERG_SECRET`
+  * `GITBERG_GH_USER`
+  * `GITBERG_GH_PASSWORD`
+  * `SSH_KEY_PASSWORD` (this is the password to `deploy/autoupdate_worker/id_rsa_password`)
   * Note that you *must* set these *all* when first creating the environment.
     Otherwise, it won't start and is then apparently unrecoverable.
   * Don't set `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY`. The EBS instance
