@@ -62,6 +62,8 @@ The EBS environment must be configured as follows for `autoupdate_worker` enviro
   * Environment type: load balancing
   * HTTP path (under Worker): `/do_update`
   * Worker queue (under Worker): gitberg-autoupdate-repositories
+  * HTTP connections (under Worker): 5
+  * Visibility timeout (under Worker): 600
 
 ### Local mock deployment
 

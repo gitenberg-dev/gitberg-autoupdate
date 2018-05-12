@@ -105,11 +105,18 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     payload_string = self.rfile.read(content_length)
     logging.info('Got a message for %s' % payload_string)
 
+    # First write something so that the nginx server upstream doesn't time out
+    # even if building the book takes a while.
+    self.wfile.write('%s ' % self.protocol_version)
+
     if not process_queued_update(payload_string):
-        self.send_error(500)
+        self.wfile.write('%d %s\r\n' % (500, 'Error'))
+        self.send_header('Connection', 'close')
+        self.end_headers()
         return
 
-    self.send_response(200)
+    self.wfile.write('%d %s\r\n' % (200, 'OK'))
+    self.send_header('Connection', 'close')
     self.end_headers()
 
 class cd:
