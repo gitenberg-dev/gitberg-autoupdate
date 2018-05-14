@@ -10,7 +10,7 @@ COPY deploy/logrotate-gitberg-autoupdate /etc/logrotate.d/
 WORKDIR /usr/src/app
 
 # This is slow, so avoid having to do it every time.
-RUN pip install boto3 travispy
+RUN pip install boto3 travispy github3.py requests GitPython
 COPY . .
 RUN pip install . --process-dependency-links
 

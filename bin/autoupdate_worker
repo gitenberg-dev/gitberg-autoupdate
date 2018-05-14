@@ -16,11 +16,16 @@ import BaseHTTPServer
 import errno
 import logging
 import os.path
+import os
 import shutil
+import subprocess
 import tarfile
 import time
 
 from docopt import docopt
+import git
+import gitenberg
+import gitenberg.travis
 import requests
 
 from gitenberg_autoupdate import __version__, queue, util
@@ -30,6 +35,10 @@ RDF_PATH = "/tmp/rdf.tar.bz2"
 RDF_EXTRACT_PATH = "/tmp/extracted_rdf"
 # 1 day
 RDF_MAX_AGE = 60 * 60 * 24
+GITENSITE_YAML_URL = "https://gitenberg.org/books/post/"
+# header: x-gitenberg-secret
+GITENBERG_SECRET = os.environ['GITENBERG_SECRET']
+
 
 def download_rdf():
   """Ensures a fresh-enough RDF file is downloaded and extracted.
@@ -95,14 +104,88 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     content_length = int(self.headers['Content-Length'])
     payload_string = self.rfile.read(content_length)
     logging.info('Got a message for %s' % payload_string)
-    # TODO(Marc): Process the repository, and take the below if
-    # statement if it fails.
-    if False:
-      self.send_error(500)
-      return
 
-    self.send_response(200)
+    # First write something so that the nginx server upstream doesn't time out
+    # even if building the book takes a while.
+    self.wfile.write('%s ' % self.protocol_version)
+
+    if not process_queued_update(payload_string):
+        self.wfile.write('%d %s\r\n' % (500, 'Error'))
+        self.send_header('Connection', 'close')
+        self.end_headers()
+        return
+
+    self.wfile.write('%d %s\r\n' % (200, 'OK'))
+    self.send_header('Connection', 'close')
     self.end_headers()
+
+class cd:
+    """Context manager for changing the current working directory"""
+    def __init__(self, newPath):
+        self.newPath = os.path.expanduser(newPath)
+
+    def __enter__(self):
+        self.savedPath = os.getcwd()
+        os.chdir(self.newPath)
+
+    def __exit__(self, etype, value, traceback):
+        os.chdir(self.savedPath)
+
+def make_ebook(b):
+    with cd(b.local_path):
+        gitenberg.travis.build_epub()
+        subprocess.check_call(('ebook-convert', 'book.epub', 'book.mobi'))
+        subprocess.check_call(('xvfb-run', 'ebook-convert', 'book.epub', 'book.pdf'))
+        # TODO: Make a release out of these once Travis stops doing that for us,
+        # and only if this push event is of a tag.
+
+def process_queued_update(repo_name):
+    # intialize book
+    b = gitenberg.actions.get_book(repo_name)
+    if b.local_path:
+        b.remove()
+    try:
+        b.clone_from_github() # if no local version, clones
+
+        # if it previously existed as a local repo, need to pull
+        repo = b.local_repo.git
+        if not repo.remote('origin'): # must exist
+            logging.error("No origin for %s" % repo_name)
+            return False
+        repo.remote('origin').pull()
+
+        b.parse_book_metadata() # in case this changed
+        b.add_covers() # checks for covers, if none, makes one, adds to metadata
+        b.save_meta() # save the new metadata in yaml format
+
+        b.local_repo.add_all_files() # untracked only
+        repo.git.add(update=True) # tracked ones too
+
+        if repo.git.status("--porcelain"):
+            logging.info('Have changes, so pushing and then building')
+            # We made no changes to the repo, so commit them.
+            repo.index.commit("Machine generated yaml, cover")
+
+            # returns a list, one PushInfo per head. We have one head
+            ret = repo.remote('origin').push(repo.refs.master)[0]
+            if ret.flags & git.remote.PushInfo.ERROR:
+                logging.error('Pushing returned %s' % ret)
+                return False
+
+            make_ebook(b) # make ebook files
+        else:
+            logging.info('No changes')
+
+        headers = {'x-gitenberg-secret': GITENBERG_SECRET}
+        response = requests.post(GITENSITE_YAML_URL, b.meta.__unicode__(), headers=headers)
+        logging.info('Got from gitensite: %s' % response)
+        return response.ok
+    finally:
+        # Make sure to always remove it to avoid filling up the disk.
+        if b.local_path:
+            b.remove()
+
+    return True
 
 if __name__ == '__main__':
   arguments = docopt(__doc__, version=__version__)
