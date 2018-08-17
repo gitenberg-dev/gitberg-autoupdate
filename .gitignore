@@ -25,7 +25,7 @@ logs/*
 .tox*
 build*
 dist*
-gitberg.egg-info
-xgitberg.egg-info
+*.egg-info
+*.egg-info
 log/log.txt
 *.log
