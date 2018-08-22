@@ -51,15 +51,18 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       logging.info('No Content-Length')
       self.send_error(400)
       return
+
     if 'X-Hub-Signature' not in self.headers:
       logging.info('No signature')
       self.send_error(400)
       return
+
     if 'X-GitHub-Event' not in self.headers:
       logging.info('No event')
       self.send_error(400)
       return
 
+    x_github_event = self.headers['X-GitHub-Event']
     content_length = int(self.headers['Content-Length'])
     payload_string = self.rfile.read(content_length)
     if _verify_signature(payload_string, self.headers['X-Hub-Signature']):
@@ -67,9 +70,9 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       self.send_error(500)
       return
 
-    if self.headers['X-GitHub-Event'] != 'push':
+    if x_github_event not in ('push', 'create'):
       # Just ignore all other hook types.
-      logging.info('Unknown event %s' % self.headers['X-GitHub-Event'])
+      logging.info('Unknown event %s' % x_github_event)
       self.send_response(200)
       self.end_headers()
       return
@@ -85,6 +88,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       logging.info('No repository in %s' % json.dumps(payload_string))
       self.send_error(400)
       return
+
     if u'full_name' not in payload[u'repository']:
       logging.info('No full_name in %s' % json.dumps(payload[u'repository']))
       self.send_error(400)
@@ -97,7 +101,14 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       self.end_headers()
       return
 
-    queue.queue_resource().send_message(MessageBody=repo)
+    if u'ref_type' in payload:
+        if payload[u'ref_type'] == u'tag':
+            tag = payload[u'ref']
+            message = '%s %s' % (repo, tag)
+    else:
+        message = repo
+    
+    queue.queue_resource().send_message(MessageBody=message)
     logging.info('Sent message for %s' % repo)
 
     self.send_response(200)

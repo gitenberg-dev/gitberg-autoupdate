@@ -4,6 +4,10 @@ venv*
 # store your authentication with github api in a file
 # do not add that file to git
 *secrets.py
+*.env
+
+# deployment archives
+*.zip
 
 # ignore the local copy of any logs
 logs/*
