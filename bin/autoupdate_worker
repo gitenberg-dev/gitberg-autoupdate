@@ -140,6 +140,8 @@ def make_ebook(b):
         # and only if this push event is of a tag.
 
 def process_queued_update(repo_name):
+    repo_name_tag = [repo_name] if isinstance(repo_name, int) else repo_name.split(' ', 1)
+    (repo_name, tag) = repo_name_tag if len(repo_name_tag) == 2 else (repo_name, None)
     # intialize book
     b = gitenberg.actions.get_book(repo_name)
     if b.local_path:
@@ -156,6 +158,10 @@ def process_queued_update(repo_name):
 
         b.parse_book_metadata() # in case this changed
         b.add_covers() # checks for covers, if none, makes one, adds to metadata
+        
+        if tag:
+            b.meta.metadata['_version'] = tag
+            
         b.save_meta() # save the new metadata in yaml format
 
         b.local_repo.add_all_files() # untracked only
@@ -163,7 +169,7 @@ def process_queued_update(repo_name):
 
         if repo.git.status("--porcelain"):
             logging.info('Have changes, so pushing and then building')
-            # We made no changes to the repo, so commit them.
+            # We made changes to the repo, so commit them.
             repo.index.commit("Machine generated yaml, cover")
 
             # returns a list, one PushInfo per head. We have one head
@@ -171,8 +177,8 @@ def process_queued_update(repo_name):
             if ret.flags & git.remote.PushInfo.ERROR:
                 logging.error('Pushing returned %s' % ret)
                 return False
-
-            make_ebook(b) # make ebook files
+            if tag:
+                make_ebook(b) # make ebook files
         else:
             logging.info('No changes')
 

@@ -65,6 +65,12 @@ The EBS environment must be configured as follows for `autoupdate_worker` enviro
   * HTTP connections (under Worker): 5
   * Visibility timeout (under Worker): 600
 
+Create the deployment zips using
+    `python deploy/make_deploy.py webhook_server`
+and 
+    `python deploy/make_deploy.py autoupdate_worker`
+then upload to EB application versions. Make sure to commit your changes first.
+
 ### Local mock deployment
 
 To run one of the servers locally in a Docker container identical to the one
@@ -76,3 +82,11 @@ $ docker build -f deploy/autoupdate_worker/Dockerfile -t autoupdate_worker ./ &&
 
 These commands rely on a file called `test_env` with the environment variables
 specified above under [Development](#development) to be configured.
+
+#### Testing in Development
+
+You can use ngrok https://ngrok.com/ to send a github webhook to the auto-update server - it will put events on the configured queuing service.
+
+To test the local autoupdate worker, just send it a post with curl, for example
+```curl --data "GITenberg/Relativity-the-Special-and-General-Theory_5001 0.1.2" http://127.0.0.1:1235/do_update
+```
