@@ -159,6 +159,12 @@ def build_epub(epub_title='book'):
         # error code?
         # http://stackoverflow.com/questions/6180185/custom-python-exceptions-with-error-codes-and-error-messages
         raise Exception ('no suitable book found')
+
+def add_release(book, version, book_files):
+    release = book.repo.create_release(version)
+    for book_fm in book_files:
+        release.upload_asset(mimetype(book_fn), book_fn, file(book_fn))
+
         
 def add_gitberg_info(epub_file_name):
     epub_file = file(epub_file_name)

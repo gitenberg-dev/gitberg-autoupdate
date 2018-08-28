@@ -127,13 +127,12 @@ class cd:
     def __exit__(self, etype, value, traceback):
         os.chdir(self.savedPath)
 
-def make_ebook(b):
+def make_ebook(b, tag):
     with cd(b.local_path):
         ebooks.build_epub()
         subprocess.check_call(('ebook-convert', 'book.epub', 'book.mobi'))
         subprocess.check_call(('xvfb-run', 'ebook-convert', 'book.epub', 'book.pdf'))
-        # TODO: Make a release out of these once Travis stops doing that for us,
-        # and only if this push event is of a tag.
+        ebooks.add_release(b, tag, ['book.epub', 'book.mobi',  'book.pdf'])        
 
 def process_queued_update(repo_name):
     repo_name_tag = [repo_name] if isinstance(repo_name, int) else repo_name.split(' ', 1)
@@ -174,7 +173,7 @@ def process_queued_update(repo_name):
                 logging.error('Pushing returned %s' % ret)
                 return False
             if tag:
-                make_ebook(b) # make ebook files
+                make_ebook(b, tag) # make ebook files
         else:
             logging.info('No changes')
 
