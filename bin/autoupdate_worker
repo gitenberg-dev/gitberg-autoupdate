@@ -25,7 +25,6 @@ import time
 from docopt import docopt
 import git
 import gitenberg
-import gitenberg.travis
 import requests
 
 from gitenberg_autoupdate import __version__, queue, util
@@ -133,7 +132,7 @@ class cd:
 
 def make_ebook(b):
     with cd(b.local_path):
-        gitenberg.travis.build_epub()
+        ebooks.build_epub()
         subprocess.check_call(('ebook-convert', 'book.epub', 'book.mobi'))
         subprocess.check_call(('xvfb-run', 'ebook-convert', 'book.epub', 'book.pdf'))
         # TODO: Make a release out of these once Travis stops doing that for us,
