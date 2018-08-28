@@ -27,16 +27,13 @@ import git
 import gitenberg
 import requests
 
-from gitenberg_autoupdate import __version__, queue, util
+from gitenberg_autoupdate import __version__, ebooks, queue, util, webhooks
 
 RDF_URL = "https://www.gutenberg.org/cache/epub/feeds/rdf-files.tar.bz2"
 RDF_PATH = "/tmp/rdf.tar.bz2"
 RDF_EXTRACT_PATH = "/tmp/extracted_rdf"
 # 1 day
 RDF_MAX_AGE = 60 * 60 * 24
-GITENSITE_YAML_URL = "https://gitenberg.org/books/post/"
-# header: x-gitenberg-secret
-GITENBERG_SECRET = os.environ['GITENBERG_SECRET']
 
 
 def download_rdf():
@@ -181,10 +178,7 @@ def process_queued_update(repo_name):
         else:
             logging.info('No changes')
 
-        headers = {'x-gitenberg-secret': GITENBERG_SECRET}
-        response = requests.post(GITENSITE_YAML_URL, b.meta.__unicode__(), headers=headers)
-        logging.info('Got from gitensite: %s' % response)
-        return response.ok
+        return webhooks.gitensite(b) and webhooks.unglueit(b)
     finally:
         # Make sure to always remove it to avoid filling up the disk.
         if b.local_path:
