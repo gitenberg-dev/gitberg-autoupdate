@@ -4,6 +4,7 @@ EXPOSE 80
 
 RUN apt-get update && apt-get -y install cron logrotate ruby xsltproc xvfb calibre git libjpeg-dev libpng-dev libfreetype6-dev zlib1g-dev libxml2-dev libxslt1-dev tidy && apt-get clean
 RUN gem install tilt
+RUN pip install git+https://github.com/gitenberg-dev/pg-epubmaker
 RUN pip install gitberg
 RUN gem install asciidoctor -v 1.5.2
 

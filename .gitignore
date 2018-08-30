@@ -4,7 +4,7 @@ venv*
 # store your authentication with github api in a file
 # do not add that file to git
 *secrets.py
-*.env
+test_env
 
 # deployment archives
 *.zip

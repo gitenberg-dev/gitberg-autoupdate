@@ -151,11 +151,12 @@ def process_queued_update(repo_name):
             return False
         repo.remote('origin').pull()
 
-        b.parse_book_metadata() # in case this changed
-        b.add_covers() # checks for covers, if none, makes one, adds to metadata
+        commit_message = str(b.parse_book_metadata()) # in case this changed
+        commit_message += str(b.add_covers()) # checks for covers, if none, makes one, adds to metadata
         
         if tag:
             b.meta.metadata['_version'] = tag
+            commit_message += "tag {}".format(tag)
             
         b.save_meta() # save the new metadata in yaml format
 
@@ -165,7 +166,7 @@ def process_queued_update(repo_name):
         if repo.git.status("--porcelain"):
             logging.info('Have changes, so pushing and then building')
             # We made changes to the repo, so commit them.
-            repo.index.commit("Machine generated yaml, cover")
+            repo.index.commit(commit_message)
 
             # returns a list, one PushInfo per head. We have one head
             ret = repo.remote('origin').push(repo.refs.master)[0]

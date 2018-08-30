@@ -1,0 +1,3 @@
+include README.md LICENSE CONTRIBUTING.rst
+recursive-include gitenberg_autoupdate *
+recursive-include bin *

@@ -126,22 +126,19 @@ def build_epub(epub_title='book'):
     md = repo_metadata()
 
     source_path = source_book(md['repo_name'])
-
+    logger.info('using source path %s' % source_path)
     if source_path == 'book.asciidoc':
         return build_epub_from_asciidoc (md['version'], epub_title)
 
     elif source_path:
-        if md['cover']:
-            cmd = u"""epubmaker --max-depth=5 --title "{title}" --author "{author}" --cover {cover} {source_path}""".format(
-                   title=md['title'],
-                   author=md['author'],
-                   cover=md['cover'],
-                   source_path=source_path)
-        else:
-            cmd = u"""epubmaker --max-depth=5 --title "{title}" --author "{author}" {source_path}""".format(
-                   title=md['title'],
-                   author=md['author'],
-                   source_path=source_path)
+        cover_option = ' --cover {}'.format(md['cover']) if  md['cover'] else ''
+            
+        cmd = u"""epubmaker --max-depth=5 --local-only --make=epub.images --title "{title}" --author "{author}"{cover_option} {source_path}""".format(
+            title=md['title'],
+            author=md['author'],
+            cover_option=cover_option,
+            source_path=source_path,
+        )
         cmd = cmd.encode('ascii', 'xmlcharrefreplace')
 
         output = subprocess.check_output(cmd, shell=True)
@@ -161,8 +158,8 @@ def build_epub(epub_title='book'):
         raise Exception ('no suitable book found')
 
 def add_release(book, version, book_files):
-    release = book.repo.create_release(version)
-    for book_fm in book_files:
+    release = book.repo().create_release(version)
+    for book_fn in book_files:
         release.upload_asset(mimetype(book_fn), book_fn, file(book_fn))
 
         
