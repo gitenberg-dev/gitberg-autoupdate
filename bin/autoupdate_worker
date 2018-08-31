@@ -22,10 +22,11 @@ import subprocess
 import tarfile
 import time
 
-from docopt import docopt
 import git
 import gitenberg
 import requests
+
+from docopt import docopt
 
 from gitenberg_autoupdate import __version__, ebooks, queue, util, webhooks
 
@@ -37,83 +38,83 @@ RDF_MAX_AGE = 60 * 60 * 24
 
 
 def download_rdf():
-  """Ensures a fresh-enough RDF file is downloaded and extracted.
+    """Ensures a fresh-enough RDF file is downloaded and extracted.
 
-  Returns True on error."""
+    Returns True on error."""
 
-  if (os.path.exists(RDF_PATH) and
-      (time.time() - os.path.getmtime(RDF_PATH)) < RDF_MAX_AGE):
+    if (os.path.exists(RDF_PATH) and
+            (time.time() - os.path.getmtime(RDF_PATH)) < RDF_MAX_AGE):
+        return False
+
+    logging.info('Re-downloading RDF library from %s' % RDF_URL)
+    try:
+        shutil.rmtree(RDF_EXTRACT_PATH)
+    except OSError as e:
+        # Ignore not finding the directory to remove.
+        if e.errno != errno.ENOENT:
+            raise
+
+    try:
+        with open(RDF_PATH, 'w') as f:
+            with requests.get(RDF_URL, stream=True) as r:
+                shutil.copyfileobj(r.raw, f)
+    except requests.exceptions.RequestException as e:
+        logging.error(e)
+        return True
+
+    try:
+        with tarfile.open(RDF_PATH, 'r') as f:
+            f.extractall(RDF_EXTRACT_PATH)
+    except tarfile.TarError as e:
+        logging.error(e)
+        try:
+            os.unlink(RDF_PATH)
+        except:
+            pass
+        return True
+
     return False
 
-  logging.info('Re-downloading RDF library from %s' % RDF_URL)
-  try:
-    shutil.rmtree(RDF_EXTRACT_PATH)
-  except OSError as e:
-    # Ignore not finding the directory to remove.
-    if e.errno != errno.ENOENT:
-      raise
-
-  try:
-    with open(RDF_PATH, 'w') as f:
-      with requests.get(RDF_URL, stream=True) as r:
-        shutil.copyfileobj(r.raw, f)
-  except requests.exceptions.RequestException as e:
-    logging.error(e)
-    return True
-
-  try:
-    with tarfile.open(RDF_PATH, 'r') as f:
-      f.extractall(RDF_EXTRACT_PATH)
-  except tarfile.TarError as e:
-    logging.error(e)
-    try:
-      os.unlink(RDF_PATH)
-    except:
-      pass
-    return True
-
-  return False
-
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
-  def do_GET(self):
-    if self.path != '/health':
-      self.send_error(404)
-      return
+    def do_GET(self):
+        if self.path != '/health':
+            self.send_error(404)
+            return
 
-    # Claim we're alive and healthy if we're responding to this GET.
-    self.send_response(200)
-    self.end_headers()
+        # Claim we're alive and healthy if we're responding to this GET.
+        self.send_response(200)
+        self.end_headers()
 
-  def do_POST(self):
-    if self.path != '/do_update':
-      self.send_error(404)
-      return
+    def do_POST(self):
+        if self.path != '/do_update':
+            self.send_error(404)
+            return
 
-    if 'Content-Length' not in self.headers:
-      self.send_error(400)
-      return
+        if 'Content-Length' not in self.headers:
+            self.send_error(400)
+            return
 
-    if download_rdf():
-      self.send_error(500)
-      return
+        if download_rdf():
+            self.send_error(500)
+            return
 
-    content_length = int(self.headers['Content-Length'])
-    payload_string = self.rfile.read(content_length)
-    logging.info('Got a message for %s' % payload_string)
+        content_length = int(self.headers['Content-Length'])
+        payload_string = self.rfile.read(content_length)
+        logging.info('Got a message for %s' % payload_string)
 
-    # First write something so that the nginx server upstream doesn't time out
-    # even if building the book takes a while.
-    self.wfile.write('%s ' % self.protocol_version)
+        # First write something so that the nginx server upstream doesn't time out
+        # even if building the book takes a while.
+        self.wfile.write('%s ' % self.protocol_version)
 
-    if not process_queued_update(payload_string):
-        self.wfile.write('%d %s\r\n' % (500, 'Error'))
+        if not process_queued_update(payload_string):
+            self.wfile.write('%d %s\r\n' % (500, 'Error'))
+            self.send_header('Connection', 'close')
+            self.end_headers()
+            return
+
+        self.wfile.write('%d %s\r\n' % (200, 'OK'))
         self.send_header('Connection', 'close')
         self.end_headers()
-        return
-
-    self.wfile.write('%d %s\r\n' % (200, 'OK'))
-    self.send_header('Connection', 'close')
-    self.end_headers()
 
 class cd:
     """Context manager for changing the current working directory"""
@@ -132,7 +133,7 @@ def make_ebook(b, tag):
         ebooks.build_epub()
         subprocess.check_call(('ebook-convert', 'book.epub', 'book.mobi'))
         subprocess.check_call(('xvfb-run', 'ebook-convert', 'book.epub', 'book.pdf'))
-        ebooks.add_release(b, tag, ['book.epub', 'book.mobi',  'book.pdf'])        
+        ebooks.add_release(b, tag, ['book.epub', 'book.mobi', 'book.pdf'])
 
 def process_queued_update(repo_name):
     repo_name_tag = [repo_name] if isinstance(repo_name, int) else repo_name.split(' ', 1)
@@ -152,12 +153,15 @@ def process_queued_update(repo_name):
         repo.remote('origin').pull()
 
         commit_message = str(b.parse_book_metadata()) # in case this changed
-        commit_message += str(b.add_covers()) # checks for covers, if none, makes one, adds to metadata
-        
+
+        # checks for covers
+        # if none, makes one, adds to metadata
+        commit_message += str(b.add_covers()) # checks for covers
+
         if tag:
             b.meta.metadata['_version'] = tag
             commit_message += "tag {}".format(tag)
-            
+
         b.save_meta() # save the new metadata in yaml format
 
         b.local_repo.add_all_files() # untracked only
@@ -187,15 +191,15 @@ def process_queued_update(repo_name):
     return True
 
 if __name__ == '__main__':
-  arguments = docopt(__doc__, version=__version__)
+    arguments = docopt(__doc__, version=__version__)
 
-  util.setup_logging(arguments)
+    util.setup_logging(arguments)
 
-  port = int(arguments.get('<port>', '80'))
+    port = int(arguments.get('<port>', '80'))
 
-  server = BaseHTTPServer.HTTPServer(('0.0.0.0', port), RequestHandler)
-  try:
-    server.serve_forever()
-  except KeyboardInterrupt:
-    pass
-  server.server_close()
+    server = BaseHTTPServer.HTTPServer(('0.0.0.0', port), RequestHandler)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    server.server_close()

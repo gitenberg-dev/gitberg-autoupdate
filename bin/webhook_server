@@ -19,111 +19,111 @@ import json
 import logging
 import os
 
-from docopt import docopt
 from gitenberg.util import catalog
+from docopt import docopt
 
 from gitenberg_autoupdate import __version__, queue, util
 
 GITHUB_WEBHOOK_SECRET = os.environ['GITHUB_WEBHOOK_SECRET']
 
 def _verify_signature(body, signature):
-  signature_check = 'sha1=' + hmac.new(GITHUB_WEBHOOK_SECRET, body, hashlib.sha1).hexdigest()
-  return not hmac.compare_digest(signature, signature_check)
+    signature_check = 'sha1=' + hmac.new(GITHUB_WEBHOOK_SECRET, body, hashlib.sha1).hexdigest()
+    return not hmac.compare_digest(signature, signature_check)
 
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
-  def do_GET(self):
-    if self.path != '/health':
-      logging.info('Unknown GET endpoint %s' % self.path)
-      self.send_error(404)
-      return
+    def do_GET(self):
+        if self.path != '/health':
+            logging.info('Unknown GET endpoint %s' % self.path)
+            self.send_error(404)
+            return
 
-    # Claim we're alive and healthy if we're responding to this GET.
-    self.send_response(200)
-    self.end_headers()
+        # Claim we're alive and healthy if we're responding to this GET.
+        self.send_response(200)
+        self.end_headers()
 
-  def do_POST(self):
-    if self.path != '/payload':
-      logging.info('Unknown POST endpoint %s' % self.path)
-      self.send_error(404)
-      return
+    def do_POST(self):
+        if self.path != '/payload':
+            logging.info('Unknown POST endpoint %s' % self.path)
+            self.send_error(404)
+            return
 
-    if 'Content-Length' not in self.headers:
-      logging.info('No Content-Length')
-      self.send_error(400)
-      return
+        if 'Content-Length' not in self.headers:
+            logging.info('No Content-Length')
+            self.send_error(400)
+            return
 
-    if 'X-Hub-Signature' not in self.headers:
-      logging.info('No signature')
-      self.send_error(400)
-      return
+        if 'X-Hub-Signature' not in self.headers:
+            logging.info('No signature')
+            self.send_error(400)
+            return
 
-    if 'X-GitHub-Event' not in self.headers:
-      logging.info('No event')
-      self.send_error(400)
-      return
+        if 'X-GitHub-Event' not in self.headers:
+            logging.info('No event')
+            self.send_error(400)
+            return
 
-    x_github_event = self.headers['X-GitHub-Event']
-    content_length = int(self.headers['Content-Length'])
-    payload_string = self.rfile.read(content_length)
-    if _verify_signature(payload_string, self.headers['X-Hub-Signature']):
-      logging.info('Error validating signature')
-      self.send_error(500)
-      return
+        x_github_event = self.headers['X-GitHub-Event']
+        content_length = int(self.headers['Content-Length'])
+        payload_string = self.rfile.read(content_length)
+        if _verify_signature(payload_string, self.headers['X-Hub-Signature']):
+            logging.info('Error validating signature')
+            self.send_error(500)
+            return
 
-    if x_github_event not in ('push', 'create'):
-      # Just ignore all other hook types.
-      logging.info('Unknown event %s' % x_github_event)
-      self.send_response(200)
-      self.end_headers()
-      return
+        if x_github_event not in ('push', 'create'):
+            # Just ignore all other hook types.
+            logging.info('Unknown event %s' % x_github_event)
+            self.send_response(200)
+            self.end_headers()
+            return
 
-    try:
-      payload = json.loads(payload_string)
-    except ValueError:
-      logging.info('Error parsing JSON')
-      self.send_error(400)
-      return
+        try:
+            payload = json.loads(payload_string)
+        except ValueError:
+            logging.info('Error parsing JSON')
+            self.send_error(400)
+            return
 
-    if u'repository' not in payload:
-      logging.info('No repository in %s' % json.dumps(payload_string))
-      self.send_error(400)
-      return
+        if u'repository' not in payload:
+            logging.info('No repository in %s' % json.dumps(payload_string))
+            self.send_error(400)
+            return
 
-    if u'full_name' not in payload[u'repository']:
-      logging.info('No full_name in %s' % json.dumps(payload[u'repository']))
-      self.send_error(400)
-      return
+        if u'full_name' not in payload[u'repository']:
+            logging.info('No full_name in %s' % json.dumps(payload[u'repository']))
+            self.send_error(400)
+            return
 
-    repo = payload[u'repository'][u'full_name']
-    if repo not in catalog.get_all_repo_names():
-      logging.info('Unknown repo %s' % repo)
-      self.send_response(200)
-      self.end_headers()
-      return
+        repo = payload[u'repository'][u'full_name']
+        if repo not in catalog.get_all_repo_names():
+            logging.info('Unknown repo %s' % repo)
+            self.send_response(200)
+            self.end_headers()
+            return
 
-    if u'ref_type' in payload:
-        if payload[u'ref_type'] == u'tag':
-            tag = payload[u'ref']
-            message = '%s %s' % (repo, tag)
-    else:
-        message = repo
-    
-    queue.queue_resource().send_message(MessageBody=message)
-    logging.info('Sent message for %s' % repo)
+        if u'ref_type' in payload:
+            if payload[u'ref_type'] == u'tag':
+                tag = payload[u'ref']
+                message = '%s %s' % (repo, tag)
+        else:
+            message = repo
 
-    self.send_response(200)
-    self.end_headers()
+        queue.queue_resource().send_message(MessageBody=message)
+        logging.info('Sent message for %s' % repo)
+
+        self.send_response(200)
+        self.end_headers()
 
 if __name__ == '__main__':
-  arguments = docopt(__doc__, version=__version__)
+    arguments = docopt(__doc__, version=__version__)
 
-  util.setup_logging(arguments)
+    util.setup_logging(arguments)
 
-  port = int(arguments.get('<port>', '80'))
+    port = int(arguments.get('<port>', '80'))
 
-  server = BaseHTTPServer.HTTPServer(('0.0.0.0', port), RequestHandler)
-  try:
-    server.serve_forever()
-  except KeyboardInterrupt:
-    pass
-  server.server_close()
+    server = BaseHTTPServer.HTTPServer(('0.0.0.0', port), RequestHandler)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    server.server_close()

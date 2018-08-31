@@ -11,13 +11,13 @@ def setup_logging(arguments):
     logging.basicConfig(level=logging.INFO, format=FORMAT)
 
     if '--logging' in arguments:
-      log_level = arguments['--logging']
-      if log_level == 'debug':
-        logger.setLevel(logging.DEBUG)
-      elif log_level == 'info':
-        logger.setLevel(logging.INFO)
-      elif log_level == 'error':
-        logger.setLevel(logging.ERROR)
+        log_level = arguments['--logging']
+        if log_level == 'debug':
+            logger.setLevel(logging.DEBUG)
+        elif log_level == 'info':
+            logger.setLevel(logging.INFO)
+        elif log_level == 'error':
+            logger.setLevel(logging.ERROR)
     if '--log_file' in arguments:
-      handler = logging.handlers.WatchedFileHandler(arguments['--log_file'])
-      logger.addHandler(handler)
+        handler = logging.handlers.WatchedFileHandler(arguments['--log_file'])
+        logger.addHandler(handler)
