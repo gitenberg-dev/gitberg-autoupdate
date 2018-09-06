@@ -19,6 +19,8 @@ import json
 import logging
 import os
 
+import requests
+
 from gitenberg.util import catalog
 from docopt import docopt
 
@@ -29,6 +31,13 @@ GITHUB_WEBHOOK_SECRET = os.environ['GITHUB_WEBHOOK_SECRET']
 def _verify_signature(body, signature):
     signature_check = 'sha1=' + hmac.new(GITHUB_WEBHOOK_SECRET, body, hashlib.sha1).hexdigest()
     return not hmac.compare_digest(signature, signature_check)
+
+def is_gitenberg_repo(repo):
+    try:
+        response = requests.head('https://github.com/{}'.format(repo), allow_redirects=False)
+        return response.status_code == 200
+    except requests.exceptions.RequestException as e:
+        logging.error(e)
 
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -96,17 +105,17 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         repo = payload[u'repository'][u'full_name']
         if repo not in catalog.get_all_repo_names():
-            logging.info('Unknown repo %s' % repo)
-            self.send_response(200)
-            self.end_headers()
-            return
+            if not is_gitenberg_repo(repo):
+                logging.info('Unknown repo %s' % repo)
+                self.send_response(200)
+                self.end_headers()
+                return
 
+        message = repo
         if u'ref_type' in payload:
             if payload[u'ref_type'] == u'tag':
                 tag = payload[u'ref']
                 message = '%s %s' % (repo, tag)
-        else:
-            message = repo
 
         queue.queue_resource().send_message(MessageBody=message)
         logging.info('Sent message for %s' % repo)
