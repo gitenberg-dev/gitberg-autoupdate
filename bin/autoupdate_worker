@@ -177,10 +177,11 @@ def process_queued_update(repo_name):
             if ret.flags & git.remote.PushInfo.ERROR:
                 logging.error('Pushing returned %s' % ret)
                 return False
-            if tag:
-                make_ebook(b, tag) # make ebook files
         else:
             logging.info('No changes')
+        if tag:
+            make_ebook(b, tag) # make ebook files
+            logging.info('Ebook Files made')
 
         return webhooks.gitensite(b) and webhooks.unglueit(b)
     finally:
