@@ -6,7 +6,7 @@ import requests
 GITENSITE_YAML_URL = "https://gitenberg.org/books/post/"
 # header: x-gitenberg-secret
 GITENBERG_SECRET = os.environ['GITENBERG_SECRET']
-UNGLUEIT_URL = "http://unglue.it/api/travisci/webhook"
+UNGLUEIT_URL = "https://unglue.it/api/travisci/webhook"
 
 def gitensite(book):
     headers = {'x-gitenberg-secret': GITENBERG_SECRET}
