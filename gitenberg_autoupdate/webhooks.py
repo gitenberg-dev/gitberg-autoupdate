@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import requests
@@ -5,7 +6,7 @@ import requests
 GITENSITE_YAML_URL = "https://gitenberg.org/books/post/"
 # header: x-gitenberg-secret
 GITENBERG_SECRET = os.environ['GITENBERG_SECRET']
-UNGLUEIT_URL = "https://unglue.it/api/travisci/webhook"
+UNGLUEIT_URL = "http://unglue.it/api/travisci/webhook"
 
 def gitensite(book):
     headers = {'x-gitenberg-secret': GITENBERG_SECRET}
@@ -14,9 +15,10 @@ def gitensite(book):
     return response.ok
 
 def unglueit(book):
-    payload = {'status_message': 'Passed', 'type': 'push'}
-    payload['owner_name'] = book.github_repo.org_name
-    payload['name'] = book.repo_name
-    response = requests.post(UNGLUEIT_URL, json={'payload': payload})    
+    repository = {}
+    repository['owner_name'] = book.github_repo.org_name
+    repository['name'] = book.repo_name
+    payload = {'status_message': 'Passed', 'type': 'push', 'repository':repository}
+    response = requests.post(UNGLUEIT_URL, data={'payload': json.dumps(payload)}) 
     logging.info('Got from unglueit: %s' % response)
     return response.ok
