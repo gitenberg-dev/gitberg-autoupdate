@@ -6,6 +6,7 @@ import os
 
 from pyepub import EPUB
 from jinja2 import FileSystemLoader, Environment
+from github3.exceptions import UnprocessableEntity
 
 from gitenberg.metadata.pandata import Pandata
 
@@ -158,7 +159,16 @@ def build_epub(epub_title='book'):
         raise Exception ('no suitable book found')
 
 def add_release(book, version, book_files):
-    release = book.repo().create_release(version)
+    try:
+        release = book.repo().create_release(version)
+    except UnprocessableEntity:
+        # can't create the release because it already exists
+        try:
+            release = book.repo().release_from_tag(version)
+        except UnprocessableEntity:
+            logger.error("couldn't make or get release: {}".format(version))
+            return
+        
     for book_fn in book_files:
         release.upload_asset(mimetype(book_fn), book_fn, file(book_fn))
 
