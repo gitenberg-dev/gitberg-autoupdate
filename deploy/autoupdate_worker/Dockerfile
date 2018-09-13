@@ -14,7 +14,7 @@ RUN git clone https://github.com/gitenberg-dev/asciidoctor-htmlbook.git && pip i
 # than a day old for production, so it'll get re-downloaded anyways. However,
 # this makes production deploys painfully slow because the EBS machine doesn't
 # have much CPU, so probably just enable this for development.
-#RUN wget https://www.gutenberg.org/cache/epub/feeds/rdf-files.tar.bz2 -O /tmp/rdf.tar.bz2 && mkdir /tmp/extracted_rdf && tar -C /tmp/extracted_rdf -xf /tmp/rdf.tar.bz2
+RUN wget https://www.gutenberg.org/cache/epub/feeds/rdf-files.tar.bz2 -O /tmp/rdf.tar.bz2 && mkdir /tmp/extracted_rdf && tar -C /tmp/extracted_rdf -xf /tmp/rdf.tar.bz2
 
 RUN mkdir /var/log/gitenberg
 COPY deploy/logrotate-gitberg-autoupdate /etc/logrotate.d/

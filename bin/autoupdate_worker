@@ -36,49 +36,64 @@ RDF_EXTRACT_PATH = "/tmp/extracted_rdf"
 # 1 day
 RDF_MAX_AGE = 60 * 60 * 24
 
+class Rdfcache(object):
+    downloading = False
+    
+    def download_rdf(self):
+        """Ensures a fresh-enough RDF file is downloaded and extracted.
 
-def download_rdf():
-    """Ensures a fresh-enough RDF file is downloaded and extracted.
+        Returns True on error."""
+        if self.downloading:
+            return True
+        
+        if (os.path.exists(RDF_PATH) and
+                (time.time() - os.path.getmtime(RDF_PATH)) < RDF_MAX_AGE):
+            return False
+        self.downloading = True
+        logging.info('Re-downloading RDF library from %s' % RDF_URL)
+        try:
+            shutil.rmtree(RDF_EXTRACT_PATH)
+        except OSError as e:
+            # Ignore not finding the directory to remove.
+            if e.errno != errno.ENOENT:
+                raise
 
-    Returns True on error."""
+        try:
+            with open(RDF_PATH, 'w') as f:
+                with requests.get(RDF_URL, stream=True) as r:
+                    shutil.copyfileobj(r.raw, f)
+        except requests.exceptions.RequestException as e:
+            logging.error(e)
+            return True
 
-    if (os.path.exists(RDF_PATH) and
-            (time.time() - os.path.getmtime(RDF_PATH)) < RDF_MAX_AGE):
+        try:
+            with tarfile.open(RDF_PATH, 'r') as f:
+                f.extractall(RDF_EXTRACT_PATH)
+        except tarfile.TarError as e:
+            logging.error(e)
+            try:
+                os.unlink(RDF_PATH)
+            except:
+                pass
+            return True
+        self.downloading = False
         return False
 
-    logging.info('Re-downloading RDF library from %s' % RDF_URL)
-    try:
-        shutil.rmtree(RDF_EXTRACT_PATH)
-    except OSError as e:
-        # Ignore not finding the directory to remove.
-        if e.errno != errno.ENOENT:
-            raise
-
-    try:
-        with open(RDF_PATH, 'w') as f:
-            with requests.get(RDF_URL, stream=True) as r:
-                shutil.copyfileobj(r.raw, f)
-    except requests.exceptions.RequestException as e:
-        logging.error(e)
-        return True
-
-    try:
-        with tarfile.open(RDF_PATH, 'r') as f:
-            f.extractall(RDF_EXTRACT_PATH)
-    except tarfile.TarError as e:
-        logging.error(e)
-        try:
-            os.unlink(RDF_PATH)
-        except:
-            pass
-        return True
-
-    return False
-
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+    _rdfcache = None
+    def download_rdf(self):
+        if not self._rdfcache:
+            self._rdfcache = Rdfcache()
+        return self._rdfcache.download_rdf()
+
     def do_GET(self):
         if self.path != '/health':
             self.send_error(404)
+            return
+        
+        # if the rdf cache ins't ready, we're not healthy
+        if self.download_rdf():
+            self.send_error(500)
             return
 
         # Claim we're alive and healthy if we're responding to this GET.
@@ -94,7 +109,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_error(400)
             return
 
-        if download_rdf():
+        if self.download_rdf():
             self.send_error(500)
             return
 
