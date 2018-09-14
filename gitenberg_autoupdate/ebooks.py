@@ -170,7 +170,11 @@ def add_release(book, version, book_files):
             return
         
     for book_fn in book_files:
-        release.upload_asset(mimetype(book_fn), book_fn, file(book_fn))
+        try:
+            release.upload_asset(mimetype(book_fn), book_fn, file(book_fn))
+        except UnprocessableEntity:
+            # asset already exists
+            logger.info("asset {} already exists".format(book_fn))
 
         
 def add_gitberg_info(epub_file_name):
