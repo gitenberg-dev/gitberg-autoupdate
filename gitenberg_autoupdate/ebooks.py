@@ -121,6 +121,8 @@ def build_epub_from_asciidoc (version, epub_title='book'):
     finally:
         os.remove(fname)
 
+class BuildEpubError(Exception):
+    pass
 
 def build_epub(epub_title='book'):
     logger.info('building epub for %s' % epub_title)
@@ -133,7 +135,6 @@ def build_epub(epub_title='book'):
 
     elif source_path:
         cover_option = ' --cover {}'.format(md['cover']) if  md['cover'] else ''
-            
         cmd = u"""epubmaker --max-depth=5 --local-only --make=epub.images --title "{title}" --author "{author}"{cover_option} {source_path}""".format(
             title=md['title'],
             author=md['author'],
@@ -141,22 +142,24 @@ def build_epub(epub_title='book'):
             source_path=source_path,
         )
         cmd = cmd.encode('ascii', 'xmlcharrefreplace')
+        logger.info('build command: %s' % cmd)
 
         output = subprocess.check_output(cmd, shell=True)
     
         # rename epub to book.epub
-
+        epubs = glob.glob("*.epub")
+        if len(epubs) == 0:
+            logger.error("no epubs generated")
+            
         # get largest epub file
-        epub_file = sorted(glob.glob("*.epub"), key=os.path.getsize, reverse=True)[0]
+        epub_file = sorted(epubs, key=os.path.getsize, reverse=True)[0]
         add_gitberg_info(epub_file)
         
         if epub_file <> u"{title}-epub.epub".format(title=md['title']):
             logger.info("actual epub_file: {}".format(epub_file))
-
+            raise BuildEpubError ('epub build failed')
     else:
-        # error code?
-        # http://stackoverflow.com/questions/6180185/custom-python-exceptions-with-error-codes-and-error-messages
-        raise Exception ('no suitable book found')
+        raise BuildEpubError('no suitable book found')
 
 def add_release(book, version, book_files):
     try:
