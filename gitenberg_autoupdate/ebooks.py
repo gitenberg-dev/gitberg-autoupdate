@@ -70,6 +70,7 @@ def repo_metadata ():
         'author': "; ".join(md.authnames()),
         'author_for_calibre': " & ".join(md.authnames()),
         'cover': cover,
+        'book_id': md.identifiers.get('gutenberg', '0')
     }
 
 
@@ -127,7 +128,6 @@ class BuildEpubError(Exception):
 def build_epub(epub_title='book'):
     logger.info('building epub for %s' % epub_title)
     md = repo_metadata()
-
     source_path = source_book(md['repo_name'])
     logger.info('using source path %s' % source_path)
     if source_path == 'book.asciidoc':
@@ -135,11 +135,12 @@ def build_epub(epub_title='book'):
 
     elif source_path:
         cover_option = ' --cover {}'.format(md['cover']) if  md['cover'] else ''
-        cmd = u"""epubmaker --max-depth=5 --local-only --make=epub.images --title "{title}" --author "{author}"{cover_option} {source_path}""".format(
+        cmd = u"""epubmaker --max-depth=5 --local-only --make=epub.images --ebook {book_id} --title "{title}" --author "{author}"{cover_option} {source_path}""".format(
             title=md['title'],
             author=md['author'],
             cover_option=cover_option,
             source_path=source_path,
+            book_id=md['book_id'],
         )
         cmd = cmd.encode('ascii', 'xmlcharrefreplace')
         logger.info('build command: %s' % cmd)
@@ -150,6 +151,7 @@ def build_epub(epub_title='book'):
         epubs = glob.glob("*.epub")
         if len(epubs) == 0:
             logger.error("no epubs generated")
+            raise BuildEpubError ('epub build failed')
             
         # get largest epub file
         epub_file = sorted(epubs, key=os.path.getsize, reverse=True)[0]
@@ -157,7 +159,6 @@ def build_epub(epub_title='book'):
         
         if epub_file <> u"{title}-epub.epub".format(title=md['title']):
             logger.info("actual epub_file: {}".format(epub_file))
-            raise BuildEpubError ('epub build failed')
     else:
         raise BuildEpubError('no suitable book found')
 
