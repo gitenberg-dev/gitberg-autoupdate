@@ -136,7 +136,7 @@ def build_epub(epub_title='book'):
     elif source_path:
         cover_option = ' --cover {}'.format(md['cover']) if  md['cover'] else ''
         cmd = u"""epubmaker --max-depth=5 --local-only --make=epub.images --ebook {book_id} --title "{title}" --author "{author}"{cover_option} {source_path}""".format(
-            title=md['title'],
+            title=md['title'].replace('"', r'\"'),
             author=md['author'],
             cover_option=cover_option,
             source_path=source_path,
