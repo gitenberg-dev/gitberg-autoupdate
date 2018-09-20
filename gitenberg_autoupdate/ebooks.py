@@ -150,7 +150,7 @@ def build_epub(epub_title='book'):
 
         # rename epub to book.epub
         epubs = glob.glob("*.epub")
-        if epubs:
+        if not epubs:
             logger.error("no epubs generated")
             raise BuildEpubError('epub build failed')
 
