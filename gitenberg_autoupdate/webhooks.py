@@ -19,6 +19,6 @@ def unglueit(book):
     repository['owner_name'] = book.github_repo.org_name
     repository['name'] = book.repo_name
     payload = {'status_message': 'Passed', 'type': 'push', 'repository':repository}
-    response = requests.post(UNGLUEIT_URL, data={'payload': json.dumps(payload)}) 
+    response = requests.post(UNGLUEIT_URL, data={'payload': json.dumps(payload)})
     logging.info('Got from unglueit: %s' % response)
     return response.ok

@@ -12,6 +12,7 @@ def queue_resource():
         )
     return _sqs_queue
 
+
 _sqs_deadletters = None
 def queue_deadletters():
     global _sqs_deadletters
@@ -20,6 +21,7 @@ def queue_deadletters():
             QueueName='gitberg-autoupdate-repositories-deadletter',
         )
     return _sqs_deadletters
+
 
 def failed_messages():
     while True:
@@ -32,17 +34,17 @@ def failed_messages():
         for message in resp:
             yield message.body
             message.delete()
-        
+
 
 def fails():
     results = set()
     for fail in failed_messages():
         results.add(fail)
-    
     return results
-    
+
+
 def queue_from_file(file_path):
     """Useful for resupmitting failed massages."""
-    with open(file_path,'r') as msgfile:
+    with open(file_path, 'r') as msgfile:
         for message in msgfile:
             queue_resource().send_message(MessageBody=message.strip())

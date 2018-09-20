@@ -19,10 +19,10 @@ function build_epub_from_asciidoc {
 
     asciidoctor -a toc,idprefix=xx_,version=$1 -b xhtml5 -T ./asciidoctor-htmlbook/htmlbook-autogen/ -d book book.asciidoc -o book.html
     git clone https://github.com/gitenberg-dev/HTMLBook
-    
+
     # don't risk icluding sample in the product epub
     rm -r ./HTMLBook/samples/
-    
+
     # make book.html available to jinja2 environment by putting it into templates
     cp book.html asciidoctor-htmlbook/gitberg-machine/templates/
 
@@ -36,9 +36,9 @@ function build_epub_from_asciidoc {
     zip -rX book.epub mimetype
     zip -rX book.epub OEBPS/ META-INF/
     if test -d "OEBPS/images/"; then zip -rX book.epub OEBPS/images/ ;fi
-    if [ "$2" != "book" ]; then mv book.epub $2.epub; fi    
+    if [ "$2" != "book" ]; then mv book.epub $2.epub; fi
 
-} 
+}
 
 build_epub_from_asciidoc $1 $2
 """
@@ -56,8 +56,8 @@ logger = logging.getLogger(__name__)
 def mimetype(filename):
     ext = filename.split('.')[-1]
     return FORMAT_TO_MIMETYPE.get(ext, '')
-    
-def repo_metadata ():
+
+def repo_metadata():
 
     md = Pandata("metadata.yaml")
     cover = None
@@ -100,7 +100,7 @@ def source_book(repo_name):
     return None
 
 
-def build_epub_from_asciidoc (version, epub_title='book'):
+def build_epub_from_asciidoc(version, epub_title='book'):
     """
     build for asciidoctor input
     """
@@ -113,9 +113,10 @@ def build_epub_from_asciidoc (version, epub_title='book'):
         f.close()
         os.chmod(fname, 0755)
 
-        output = subprocess.check_output("./{fname} {version} {epub_title}".format(fname=fname, 
-              version=version, epub_title=epub_title), 
-              shell=True)
+        output = subprocess.check_output("./{fname} {version} {epub_title}".format(
+            fname=fname,
+            version=version, epub_title=epub_title,
+        ), shell=True)
         logger.info(output)
     except Exception as e:
         logger.error(e)
@@ -131,7 +132,7 @@ def build_epub(epub_title='book'):
     source_path = source_book(md['repo_name'])
     logger.info('using source path %s' % source_path)
     if source_path == 'book.asciidoc':
-        return build_epub_from_asciidoc (md['version'], epub_title)
+        return build_epub_from_asciidoc(md['version'], epub_title)
 
     elif source_path:
         cover_option = ' --cover {}'.format(md['cover']) if  md['cover'] else ''
@@ -146,17 +147,17 @@ def build_epub(epub_title='book'):
         logger.info('build command: %s' % cmd)
 
         output = subprocess.check_output(cmd, shell=True)
-    
+
         # rename epub to book.epub
         epubs = glob.glob("*.epub")
-        if len(epubs) == 0:
+        if epubs:
             logger.error("no epubs generated")
-            raise BuildEpubError ('epub build failed')
-            
+            raise BuildEpubError('epub build failed')
+
         # get largest epub file
         epub_file = sorted(epubs, key=os.path.getsize, reverse=True)[0]
         add_gitberg_info(epub_file)
-        
+
         if epub_file <> u"{title}-epub.epub".format(title=md['title']):
             logger.info("actual epub_file: {}".format(epub_file))
     else:
@@ -172,7 +173,7 @@ def add_release(book, version, book_files):
         except UnprocessableEntity:
             logger.error("couldn't make or get release: {}".format(version))
             return
-        
+
     for book_fn in book_files:
         try:
             release.upload_asset(mimetype(book_fn), book_fn, file(book_fn))
@@ -180,16 +181,16 @@ def add_release(book, version, book_files):
             # asset already exists
             logger.info("asset {} already exists".format(book_fn))
 
-        
+
 def add_gitberg_info(epub_file_name):
     epub_file = file(epub_file_name)
     output = EPUB(epub_file, "a")
     output.addpart(make_gitberg_info(), ABOUT, "application/xhtml+xml", 1) #after title, we hope
     output.writetodisk('book.epub')
-    
+
 def make_gitberg_info():
     metadata = Pandata("metadata.yaml")
-    tempdir = os.path.join(os.path.dirname(__file__), 'templates/') 
+    tempdir = os.path.join(os.path.dirname(__file__), 'templates/')
     env = Environment(loader=FileSystemLoader([tempdir, '/',]))
     template = env.get_template(ABOUT)
     return template.render(metadata=metadata)
