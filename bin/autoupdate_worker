@@ -109,10 +109,6 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_error(400)
             return
 
-        if self.download_rdf():
-            self.send_error(500)
-            return
-
         content_length = int(self.headers['Content-Length'])
         payload_string = self.rfile.read(content_length)
         logging.info('Got a message for %s' % payload_string)
@@ -120,6 +116,10 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # First write something so that the nginx server upstream doesn't time out
         # even if building the book takes a while.
         self.wfile.write('%s ' % self.protocol_version)
+
+        if self.download_rdf():
+            self.send_error(500)
+            return
 
         if not process_queued_update(payload_string):
             self.wfile.write('%d %s\r\n' % (500, 'Error'))
