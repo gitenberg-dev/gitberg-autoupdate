@@ -144,10 +144,13 @@ class cd:
         os.chdir(self.savedPath)
 
 def make_ebook(b, tag):
+    time0 = time.time()
     with cd(b.local_path):
         ebooks.build_epub()
+        logging.info('epub for {} took {} seconds'.format(b.local_path, time.time() - time0))
         subprocess.check_call(('ebook-convert', 'book.epub', 'book.mobi'))
         subprocess.check_call(('xvfb-run', 'ebook-convert', 'book.epub', 'book.pdf'))
+        logging.info('ebooks for {} took {} seconds'.format(b.local_path, time.time() - time0))
         ebooks.add_release(b, tag, ['book.epub', 'book.mobi', 'book.pdf'])
 
 def process_queued_update(repo_name):
