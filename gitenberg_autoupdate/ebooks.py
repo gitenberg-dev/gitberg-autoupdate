@@ -89,6 +89,7 @@ def source_book(repo_name):
                       "{}-0.txt".format(repo_id),
                       "{}-8.txt".format(repo_id),
                       "{}.txt".format(repo_id),
+                      "{}-pdf.pdf".format(repo_id),
                      ]
 
     # return the first match
@@ -133,7 +134,9 @@ def build_epub(epub_title='book'):
     logger.info('using source path %s' % source_path)
     if source_path == 'book.asciidoc':
         return build_epub_from_asciidoc(md['version'], epub_title)
-
+    elif source_path and source_path.endswith('.pdf'):
+        os.rename(source_path, 'book.pdf')
+        return
     elif source_path:
         cover_option = ' --cover {}'.format(md['cover']) if  md['cover'] else ''
         cmd = u"""epubmaker --max-depth=5 --local-only --make=epub.images --ebook {book_id} --title "{title}" --author "{author}"{cover_option} {source_path}""".format(
@@ -175,12 +178,14 @@ def add_release(book, version, book_files):
             return
 
     for book_fn in book_files:
-        try:
-            release.upload_asset(mimetype(book_fn), book_fn, file(book_fn))
-        except UnprocessableEntity:
-            # asset already exists
-            logger.info("asset {} already exists".format(book_fn))
-
+        if os.path.exists(book_fn):
+            try:
+                release.upload_asset(mimetype(book_fn), book_fn, file(book_fn))
+            except UnprocessableEntity:
+                # asset already exists
+                logger.info("asset {} already exists".format(book_fn))
+        else:
+            logger.info("file does not exist: {}".format(book_fn))
 
 def add_gitberg_info(epub_file_name):
     epub_file = file(epub_file_name)
