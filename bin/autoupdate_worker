@@ -153,11 +153,19 @@ def make_ebook(b, tag):
         logging.info('ebooks for {} took {} seconds'.format(b.local_path, time.time() - time0))
         ebooks.add_release(b, tag, ['book.epub', 'book.mobi', 'book.pdf'])
 
+def ratelimit_remaining(book):
+    try:
+        return book.github_repo.github.ratelimit_remaining
+    except:
+        logging.error("couldn't get rate limit")
+        return -1
+        
 def process_queued_update(repo_name):
     repo_name_tag = [repo_name] if isinstance(repo_name, int) else repo_name.split(' ', 1)
     (repo_name, tag) = repo_name_tag if len(repo_name_tag) == 2 else (repo_name, None)
     # intialize book
     b = gitenberg.actions.get_book(repo_name)
+    ratelimit_start = ratelimit_remaining(b)
     if b.local_path:
         b.remove()
     try:
@@ -200,7 +208,11 @@ def process_queued_update(repo_name):
         if tag:
             make_ebook(b, tag) # make ebook files
             logging.info('Ebook Files made')
-
+        
+        ratelimit_end = ratelimit_remaining(b)
+        logging.info("Used {} api calls; {} remaining".format(
+            ratelimit_start - ratelimit_end, ratelimit_end
+        ))
         return webhooks.gitensite(b) and webhooks.unglueit(b)
     finally:
         # Make sure to always remove it to avoid filling up the disk.
