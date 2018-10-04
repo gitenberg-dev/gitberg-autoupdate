@@ -81,6 +81,11 @@ class Rdfcache(object):
 
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     _rdfcache = None
+    
+    # login just once
+    cache = {}
+
+
     def download_rdf(self):
         if not self._rdfcache:
             self._rdfcache = Rdfcache()
@@ -121,7 +126,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_error(500)
             return
 
-        if not process_queued_update(payload_string):
+        if not process_queued_update(payload_string, cache=self.cache):
             self.wfile.write('%d %s\r\n' % (500, 'Error'))
             self.send_header('Connection', 'close')
             self.end_headers()
@@ -161,12 +166,13 @@ def ratelimit_remaining(book):
         logging.error("couldn't get rate limit")
         return -1
         
-def process_queued_update(repo_name):
+def process_queued_update(repo_name, cache={}):
     repo_name_tag = [repo_name] if isinstance(repo_name, int) else repo_name.split(' ', 1)
     (repo_name, tag) = repo_name_tag if len(repo_name_tag) == 2 else (repo_name, None)
     # intialize book
-    b = gitenberg.actions.get_book(repo_name)
+    b = gitenberg.actions.get_book(repo_name, cache=cache)
     ratelimit_start = ratelimit_remaining(b)
+    logging.info('ratelimit_remaining[start]: {}'.format(ratelimit_remaining(b)))
     if b.local_path:
         b.remove()
     try:
