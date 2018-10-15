@@ -64,9 +64,9 @@ def repo_metadata():
     for cover in md.covers:
         cover = cover.get('image_path', None)
     return {
-        'repo_name': md.metadata.get("_repo"),
-        'version': md.metadata.get("_version"),
-        'title': md.metadata.get("title"),
+        'repo_name': md._repo,
+        'version': md._version,
+        'title': md.title,
         'author': "; ".join(md.authnames()),
         'author_for_calibre': " & ".join(md.authnames()),
         'cover': cover,
