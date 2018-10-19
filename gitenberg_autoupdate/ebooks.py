@@ -58,7 +58,6 @@ def mimetype(filename):
     return FORMAT_TO_MIMETYPE.get(ext, '')
 
 def repo_metadata():
-
     md = Pandata("metadata.yaml")
     cover = None
     for cover in md.covers:
@@ -127,6 +126,12 @@ def build_epub_from_asciidoc(version, epub_title='book'):
 class BuildEpubError(Exception):
     pass
 
+def dequote(text):
+    text = text.replace('"', r'\"')
+    text = text.replace("'", r"\'")
+    text = text.replace('`', r'\`')   
+    return text
+
 def build_epub(epub_title='book'):
     logger.info('building epub for %s' % epub_title)
     md = repo_metadata()
@@ -140,8 +145,8 @@ def build_epub(epub_title='book'):
     elif source_path:
         cover_option = ' --cover {}'.format(md['cover']) if  md['cover'] else ''
         cmd = u"""epubmaker --max-depth=5 --local-only --make=epub.images --ebook {book_id} --title "{title}" --author "{author}"{cover_option} {source_path}""".format(
-            title=md['title'].replace('"', r'\"'),
-            author=md['author'].replace('"', r'\"'),
+            title=dequote(md['title']),
+            author=dequote(md['author']),
             cover_option=cover_option,
             source_path=source_path,
             book_id=md['book_id'],
