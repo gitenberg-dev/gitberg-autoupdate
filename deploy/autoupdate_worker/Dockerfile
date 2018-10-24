@@ -5,7 +5,6 @@ EXPOSE 80
 RUN apt-get update && apt-get -y install cron logrotate ruby xsltproc xvfb calibre git libjpeg-dev libpng-dev libfreetype6-dev zlib1g-dev libxml2-dev libxslt1-dev tidy && apt-get clean
 RUN gem install tilt
 RUN pip install -U git+https://github.com/gitenberg-dev/pg-epubmaker.git@6220d965ad45bf2ec813e53369df98bd422c0452
-RUN pip install -U gitberg==0.5.4
 RUN gem install asciidoctor -v 1.5.2
 
 RUN git clone https://github.com/gitenberg-dev/asciidoctor-htmlbook.git && pip install -r asciidoctor-htmlbook/gitberg-machine/requirements.txt && rm -r asciidoctor-htmlbook
