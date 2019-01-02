@@ -36,7 +36,7 @@ setup(name='gitberg.autoupdate',
           'six>=1.10.0',
           'PyYAML==3.11',
           'boto3',
-          'gitberg==0.5.5',
+          'gitberg==0.6.1',
       ],
       test_suite='nose.collector',
       tests_require=[
