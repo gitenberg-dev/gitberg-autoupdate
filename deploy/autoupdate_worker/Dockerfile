@@ -28,6 +28,6 @@ COPY deploy/id_rsa_password /root/.ssh/id_rsa
 RUN chmod 0600 /root/.ssh/id_rsa
 COPY deploy/.gitconfig /root/.gitconfig
 COPY . .
-RUN pip install . --process-dependency-links
+RUN pip install . 
 
 CMD service cron start && ssh-keygen -p -P $SSH_KEY_PASSWORD -N "" -f /root/.ssh/id_rsa && exec autoupdate_worker --port 80 --log_file /var/log/gitenberg/autoupdate_worker

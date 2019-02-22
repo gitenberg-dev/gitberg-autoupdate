@@ -12,6 +12,6 @@ WORKDIR /usr/src/app
 # This is slow, so avoid having to do it every time.
 RUN pip install boto3 travispy github3.py requests GitPython
 COPY . .
-RUN pip install . --process-dependency-links
+RUN pip install .
 
 CMD service cron start && exec webhook_server --port 80 --log_file /var/log/gitenberg/webhook_server

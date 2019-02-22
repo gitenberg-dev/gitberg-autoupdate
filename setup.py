@@ -34,9 +34,12 @@ setup(name='gitberg.autoupdate',
           'GitPython>=2.0.0',
           'docopt>=0.6',
           'six>=1.10.0',
-          'PyYAML==3.11',
+          'PyYAML==3.13',
           'boto3',
           'gitberg==0.6.1',
+      ],
+      dependency_links=[
+        'https://github.com/gitenberg-dev/gitberg/tarball/master#egg=gitberg-0.6.1'
       ],
       test_suite='nose.collector',
       tests_require=[
