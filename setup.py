@@ -36,7 +36,7 @@ setup(name='gitberg.autoupdate',
           'six>=1.10.0',
           'PyYAML==3.13',
           'boto3',
-          'gitberg==0.6.1',
+          'gitberg==0.6.2',
       ],
       dependency_links=[
         'https://github.com/gitenberg-dev/gitberg/tarball/master#egg=gitberg-0.6.1'
