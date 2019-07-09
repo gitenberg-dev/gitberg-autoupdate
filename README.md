@@ -90,3 +90,6 @@ You can use ngrok https://ngrok.com/ to send a github webhook to the auto-update
 To test the local autoupdate worker, just send it a post with curl, for example
 ```curl --data "GITenberg/Relativity-the-Special-and-General-Theory_5001 0.1.2" http://127.0.0.1:1235/do_update
 ```
+
+to redo a file of repo<tab>versions:
+```python -c "from gitenberg_autoupdate.queue import queue_from_file; queue_from_file('/Documents/gitenberg/redo.txt')"```
