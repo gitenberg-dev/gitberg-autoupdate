@@ -36,10 +36,9 @@ setup(name='gitberg.autoupdate',
           'six>=1.10.0',
           'PyYAML>=5.1',
           'boto3',
-          'gitberg>=0.6.3',
-      ],
-      dependency_links=[
-        'https://github.com/gitenberg-dev/gitberg/tarball/master#egg=gitberg-0.6.1'
+          'gitberg>=0.7.0',
+          'pyepub>=0.4.0',
+          'jinja2',
       ],
       test_suite='nose.collector',
       tests_require=[
@@ -49,7 +48,7 @@ setup(name='gitberg.autoupdate',
           'Development Status :: 3 - Alpha',
           'Intended Audience :: Developers',
           'License :: OSI Approved :: GNU General Public License (GPL)',
-          'Programming Language :: Python :: 2.7',
+          'Programming Language :: Python :: 3.6',
       ],
       keywords="books ebooks gitenberg gutenberg epub metadata",
       )

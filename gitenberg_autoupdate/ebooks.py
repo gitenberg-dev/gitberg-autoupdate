@@ -111,7 +111,7 @@ def build_epub_from_asciidoc(version, epub_title='book'):
         f = open(fname, "wb")
         f.write(BUILD_EPUB_SCRIPT.encode('utf-8'))
         f.close()
-        os.chmod(fname, 0755)
+        os.chmod(fname, 0o0755)
 
         output = subprocess.check_output("./{fname} {version} {epub_title}".format(
             fname=fname,
@@ -143,8 +143,8 @@ def build_epub(epub_title='book'):
         os.rename(source_path, 'book.pdf')
         return
     elif source_path:
-        cover_option = ' --cover {}'.format(md['cover']) if  md['cover'] else ''
-        cmd = u"""epubmaker --max-depth=5 --local-only --make=epub.images --ebook {book_id} --title "{title}" --author "{author}"{cover_option} {source_path}""".format(
+        cover_option = ' --cover {}'.format(md['cover']) if  md['cover'] else '--generate-cover'
+        cmd = u"""ebookmaker --max-depth=3 --make=epub.images --ebook {book_id} --title "{title}" --author "{author}"{cover_option} {source_path}""".format(
             title=dequote(md['title']),
             author=dequote(md['author']),
             cover_option=cover_option,
@@ -166,7 +166,7 @@ def build_epub(epub_title='book'):
         epub_file = sorted(epubs, key=os.path.getsize, reverse=True)[0]
         add_gitberg_info(epub_file)
 
-        if epub_file <> u"{title}-epub.epub".format(title=md['title']):
+        if epub_file != u"{title}-epub.epub".format(title=md['title']):
             logger.info("actual epub_file: {}".format(epub_file))
     else:
         raise BuildEpubError('no suitable book found')
