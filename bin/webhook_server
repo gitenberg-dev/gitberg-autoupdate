@@ -12,7 +12,7 @@ Options:
     --log_file <log_file> also log to a file
 """
 
-from http.server import HTTPServer as BaseHTTPServer
+from six.moves import BaseHTTPServer
 import hashlib
 import hmac
 import json
@@ -73,7 +73,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         x_github_event = self.headers['X-GitHub-Event']
         content_length = int(self.headers['Content-Length'])
-        payload_string = self.rfile.read(content_length)
+        payload_string = str(self.rfile.read(content_length), 'utf-8')
         if _verify_signature(payload_string, self.headers['X-Hub-Signature']):
             logging.info('Error validating signature')
             self.send_error(500)
