@@ -184,19 +184,20 @@ def add_release(book, version, book_files):
 
     for book_fn in book_files:
         if os.path.exists(book_fn):
-            try:
-                release.upload_asset(mimetype(book_fn), book_fn, file(book_fn))
-            except UnprocessableEntity:
-                # asset already exists
-                logger.info("asset {} already exists".format(book_fn))
+            with open(book_fn, 'rb') as book_file:
+                try:
+                    release.upload_asset(mimetype(book_fn), book_fn, book_file)
+                except UnprocessableEntity:
+                    # asset already exists
+                    logger.info("asset {} already exists".format(book_fn))
         else:
             logger.info("file does not exist: {}".format(book_fn))
 
 def add_gitberg_info(epub_file_name):
-    epub_file = file(epub_file_name)
-    output = EPUB(epub_file, "a")
-    output.addpart(make_gitberg_info(), ABOUT, "application/xhtml+xml", 1) #after title, we hope
-    output.writetodisk('book.epub')
+    with open(epub_file_name, 'r+b') as epub_from_file:
+        epub = EPUB(epub_from_file, mode='a')
+        epub.addpart(make_gitberg_info(), ABOUT, "application/xhtml+xml", 1) #after title, we hope
+        epub.writetodisk('book.epub')
 
 def make_gitberg_info():
     metadata = Pandata("metadata.yaml")
