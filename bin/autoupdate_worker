@@ -12,8 +12,7 @@ Options:
     --log_file <log_file> also log to a file
 """
 
-import BaseHTTPServer
-import errno
+from six.moves import BaseHTTPServer
 import logging
 import os.path
 import os
@@ -27,68 +26,23 @@ import gitenberg
 import requests
 
 from docopt import docopt
+from gitenberg.util.catalog import Rdfcache
+from gitenberg.config import ConfigFile
 
 from gitenberg_autoupdate import __version__, ebooks, queue, util, webhooks
 
-RDF_URL = "https://www.gutenberg.org/cache/epub/feeds/rdf-files.tar.bz2"
-RDF_PATH = "/tmp/rdf.tar.bz2"
-RDF_EXTRACT_PATH = "/tmp/extracted_rdf"
-# 1 day
-RDF_MAX_AGE = 60 * 60 * 24
-
-class Rdfcache(object):
-    downloading = False
-    
-    def download_rdf(self):
-        """Ensures a fresh-enough RDF file is downloaded and extracted.
-
-        Returns True on error."""
-        if self.downloading:
-            return True
-        
-        if (os.path.exists(RDF_PATH) and
-                (time.time() - os.path.getmtime(RDF_PATH)) < RDF_MAX_AGE):
-            return False
-        self.downloading = True
-        logging.info('Re-downloading RDF library from %s' % RDF_URL)
-        try:
-            shutil.rmtree(RDF_EXTRACT_PATH)
-        except OSError as e:
-            # Ignore not finding the directory to remove.
-            if e.errno != errno.ENOENT:
-                raise
-
-        try:
-            with open(RDF_PATH, 'w') as f:
-                with requests.get(RDF_URL, stream=True) as r:
-                    shutil.copyfileobj(r.raw, f)
-        except requests.exceptions.RequestException as e:
-            logging.error(e)
-            return True
-
-        try:
-            with tarfile.open(RDF_PATH, 'r') as f:
-                f.extractall(RDF_EXTRACT_PATH)
-        except tarfile.TarError as e:
-            logging.error(e)
-            try:
-                os.unlink(RDF_PATH)
-            except:
-                pass
-            return True
-        self.downloading = False
-        return False
-
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+
     _rdfcache = None
     
     # login just once
     cache = {}
 
-
     def download_rdf(self):
         if not self._rdfcache:
-            self._rdfcache = Rdfcache()
+            cf = ConfigFile()
+            rdf_library = cf.data.get('rdf_library', None)
+            self._rdfcache = Rdfcache(rdf_library=rdf_library)
         return self._rdfcache.download_rdf()
 
     def do_GET(self):
@@ -106,6 +60,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
+        #try:
         if self.path != '/do_update':
             self.send_error(404)
             return
@@ -115,26 +70,27 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             return
 
         content_length = int(self.headers['Content-Length'])
-        payload_string = self.rfile.read(content_length)
+        payload_string = str(self.rfile.read(content_length), 'utf-8')
         logging.info('Got a message for %s' % payload_string)
 
         # First write something so that the nginx server upstream doesn't time out
         # even if building the book takes a while.
-        self.wfile.write('%s ' % self.protocol_version)
-
+        self.wfile.write(bytes('%s ' % self.protocol_version, 'utf-8'))
+        logging.info('%s ' % self.protocol_version)
         if self.download_rdf():
             self.send_error(500)
             return
 
         if not process_queued_update(payload_string, cache=self.cache):
-            self.wfile.write('%d %s\r\n' % (500, 'Error'))
+            self.wfile.write(bytes('%d %s\r\n' % (500, 'Error')), 'utf-8')
             self.send_header('Connection', 'close')
             self.end_headers()
             return
 
-        self.wfile.write('%d %s\r\n' % (200, 'OK'))
+        self.wfile.write(bytes('%d %s\r\n' % (200, 'OK'), 'utf-8'))
         self.send_header('Connection', 'close')
         self.end_headers()
+            
 
 class cd:
     """Context manager for changing the current working directory"""
@@ -170,6 +126,7 @@ def process_queued_update(repo_name, cache={}):
     repo_name_tag = [repo_name] if isinstance(repo_name, int) else repo_name.split(' ', 1)
     (repo_name, tag) = repo_name_tag if len(repo_name_tag) == 2 else (repo_name, None)
     # intialize book
+    logging.info('getting: {}'.format(repo_name))
     b = gitenberg.actions.get_book(repo_name, cache=cache)
     ratelimit_start = ratelimit_remaining(b)
     logging.info('ratelimit_remaining[start]: {}'.format(ratelimit_remaining(b)))
