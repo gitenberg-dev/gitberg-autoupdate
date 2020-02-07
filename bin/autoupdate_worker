@@ -52,7 +52,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         
         # if the rdf cache ins't ready, we're not healthy
         if self.download_rdf():
-            self.send_error(500)
+            self.send_error(500, 'cache not ready')
             return
 
         # Claim we're alive and healthy if we're responding to this GET.
@@ -66,7 +66,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             return
 
         if 'Content-Length' not in self.headers:
-            self.send_error(400)
+            self.send_error(400, 'no content-length')
             return
 
         content_length = int(self.headers['Content-Length'])
@@ -78,19 +78,15 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.write(bytes('%s ' % self.protocol_version, 'utf-8'))
         logging.info('%s ' % self.protocol_version)
         if self.download_rdf():
-            self.send_error(500)
+            self.send_error(500, 'rdf download failed')
             return
 
         if not process_queued_update(payload_string, cache=self.cache):
-            self.wfile.write(bytes('%d %s\r\n' % (500, 'Error')), 'utf-8')
-            self.send_header('Connection', 'close')
-            self.end_headers()
+            self.send_error(500, 'update failed')
             return
 
-        self.wfile.write(bytes('%d %s\r\n' % (200, 'OK'), 'utf-8'))
-        self.send_header('Connection', 'close')
+        self.send_response(200)
         self.end_headers()
-            
 
 class cd:
     """Context manager for changing the current working directory"""
