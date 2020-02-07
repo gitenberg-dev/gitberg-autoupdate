@@ -10,7 +10,7 @@ UNGLUEIT_URL = "https://unglue.it/api/travisci/webhook"
 
 def gitensite(book):
     headers = {'x-gitenberg-secret': GITENBERG_SECRET}
-    response = requests.post(GITENSITE_YAML_URL, book.meta.__unicode__(), headers=headers)
+    response = requests.post(GITENSITE_YAML_URL, json=book.meta.metadata, headers=headers)
     logging.info('Got from gitensite: %s' % response)
     return response.ok
 
