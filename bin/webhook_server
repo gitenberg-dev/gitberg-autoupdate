@@ -26,7 +26,7 @@ from docopt import docopt
 
 from gitenberg_autoupdate import __version__, queue, util
 
-GITHUB_WEBHOOK_SECRET = os.environ['GITHUB_WEBHOOK_SECRET']
+GITHUB_WEBHOOK_SECRET = bytes(os.environ['GITHUB_WEBHOOK_SECRET'], 'utf-8')
 
 def _verify_signature(body, signature):
     signature_check = 'sha1=' + hmac.new(GITHUB_WEBHOOK_SECRET, body, hashlib.sha1).hexdigest()
