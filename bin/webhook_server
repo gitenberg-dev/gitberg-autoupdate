@@ -73,8 +73,8 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         x_github_event = self.headers['X-GitHub-Event']
         content_length = int(self.headers['Content-Length'])
-        payload_string = str(self.rfile.read(content_length), 'utf-8')
-        if _verify_signature(payload_string, self.headers['X-Hub-Signature']):
+        payload_bytes = self.rfile.read(content_length)
+        if _verify_signature(payload_bytes, self.headers['X-Hub-Signature']):
             logging.info('Error validating signature')
             self.send_error(500)
             return
@@ -87,7 +87,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             return
 
         try:
-            payload = json.loads(payload_string)
+            payload = json.loads(payload_bytes)
         except ValueError:
             logging.info('Error parsing JSON')
             self.send_error(400)
