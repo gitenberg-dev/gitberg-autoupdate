@@ -39,8 +39,9 @@ Configure the following environment variables (under Configuration > Software > 
   * `GITHUB_WEBHOOK_SECRET`
   * `AWS_DEFAULT_REGION`
   * `GITENBERG_SECRET`
-  * `GITBERG_GH_USER`
-  * `GITBERG_GH_PASSWORD`
+  * `GITBERG_GH_USER` (deprecated)
+  * `GITBERG_GH_PASSWORD` (deprecated)
+  * `GITBERG_GH_ACCESS_TOKEN` (this is a 'user access token')
   * `SSH_KEY_PASSWORD` (this is the password to `deploy/autoupdate_worker/id_rsa_password`)
   * Note that you *must* set these *all* when first creating the environment.
     Otherwise, it won't start and is then apparently unrecoverable.
