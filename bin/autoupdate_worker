@@ -119,7 +119,7 @@ def ratelimit_remaining(book):
         return -1
         
 def process_queued_update(repo_name, cache={}):
-    repo_name_tag = [repo_name] if isinstance(repo_name, int) else repo_name.split(' ', 1)
+    repo_name_tag = [repo_name] if isinstance(repo_name, int) else repo_name.split(' \t', 1)
     (repo_name, tag) = repo_name_tag if len(repo_name_tag) == 2 else (repo_name, None)
     # intialize book
     logging.info('getting: {}'.format(repo_name))
