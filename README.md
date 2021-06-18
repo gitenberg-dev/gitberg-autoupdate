@@ -42,7 +42,7 @@ Configure the following environment variables (under Configuration > Software > 
   * `GITBERG_GH_USER` (deprecated)
   * `GITBERG_GH_PASSWORD` (deprecated)
   * `GITBERG_GH_ACCESS_TOKEN` (this is a 'user access token')
-  * `SSH_KEY_PASSWORD` (this is the password to `deploy/autoupdate_worker/id_rsa_password`)
+  * `SSH_KEY_PASSWORD` (this is the password to `deploy/autoupdate_worker/id_ed25519_password`)
   * Note that you *must* set these *all* when first creating the environment.
     Otherwise, it won't start and is then apparently unrecoverable.
   * Don't set `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY`. The EBS instance
