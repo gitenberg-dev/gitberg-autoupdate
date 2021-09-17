@@ -57,7 +57,6 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         # Claim we're alive and healthy if we're responding to this GET.
         self.send_response(200)
-        self.end_headers()
 
     def do_POST(self):
         #try:
@@ -75,8 +74,9 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         # First write something so that the nginx server upstream doesn't time out
         # even if building the book takes a while.
-        self.wfile.write(bytes('%s ' % self.protocol_version, 'utf-8'))
-        logging.info('%s ' % self.protocol_version)
+        #self.send_response_only(100)
+        #self.wfile.write(bytes('%s ' % self.protocol_version, 'utf-8'))
+        #logging.info('%s ' % self.protocol_version)
         if self.download_rdf():
             self.send_error(500, 'rdf download failed')
             return
@@ -143,9 +143,9 @@ def process_queued_update(repo_name, cache={}):
         # checks for covers
         # if none, makes one, adds to metadata
         commit_message += str(b.add_covers()) # checks for covers
-
+            
         if tag:
-            b.meta.metadata['_version'] = tag
+            b.meta.metadata['_version'] = tag.strip()
             commit_message += "tag {}".format(tag)
 
         b.save_meta() # save the new metadata in yaml format
@@ -166,18 +166,32 @@ def process_queued_update(repo_name, cache={}):
         else:
             logging.info('No changes')
         if tag:
-            make_ebook(b, tag) # make ebook files
+            make_ebook(b, tag.strip()) # make ebook files
             logging.info('Ebook Files made')
         
         ratelimit_end = ratelimit_remaining(b)
         logging.info("Used {} api calls; {} remaining".format(
             ratelimit_start - ratelimit_end, ratelimit_end
         ))
-        return webhooks.gitensite(b) and webhooks.unglueit(b)
+        gitenberged = webhooks.gitensite(b)
+        unglued = webhooks.unglueit(b)
+        logging.info('gitenberg: %s; unglue.it: %s', gitenberged, unglued)
+        return gitenberged and unglued
+
+    except TypeError:
+        #probably the repo pull was not successful
+        logging.error('%s may not exist', repo_name)
+        return False
+    except git.exc.GitCommandError:
+        logging.error('repo is in a funny state')
+        return False
     finally:
         # Make sure to always remove it to avoid filling up the disk.
+        logging.info('cleaning up %s', repo_name)
         if b.local_path:
             b.remove()
+        if b.local_repo: # change this after updating book.remove()
+            b.local_repo = None
 
     return True
 
@@ -187,6 +201,7 @@ if __name__ == '__main__':
     util.setup_logging(arguments)
 
     port = int(arguments.get('<port>', '80'))
+    logging.info('binding to port %s', port)
 
     server = BaseHTTPServer.HTTPServer(('0.0.0.0', port), RequestHandler)
     try:

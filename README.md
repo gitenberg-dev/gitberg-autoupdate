@@ -89,7 +89,7 @@ specified above under [Development](#development) to be configured.
 You can use ngrok https://ngrok.com/ to send a github webhook to the auto-update server - it will put events on the configured queuing service.
 
 To test the local autoupdate worker, just send it a post with curl, for example
-```curl --data "GITenberg/Relativity-the-Special-and-General-Theory_5001 0.1.2" http://127.0.0.1:1235/do_update
+```curl --data "GITenberg/Relativity-the-Special-and-General-Theory_5001 0.1.2" -v /tmp:/tmp http://127.0.0.1:1235/do_update
 ```
 
 to redo a file of repo<tab>versions:

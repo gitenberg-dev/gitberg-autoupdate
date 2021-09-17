@@ -6,7 +6,7 @@ import os
 
 from pyepub import EPUB
 from jinja2 import FileSystemLoader, Environment
-from github3.exceptions import UnprocessableEntity
+from github3.exceptions import UnprocessableEntity, NotFoundError
 
 from gitenberg.metadata.pandata import Pandata
 
@@ -178,7 +178,7 @@ def add_release(book, version, book_files):
         # can't create the release because it already exists
         try:
             release = book.repo().release_from_tag(version)
-        except UnprocessableEntity:
+        except (UnprocessableEntity, NotFoundError):
             logger.error("couldn't make or get release: {}".format(version))
             return
 

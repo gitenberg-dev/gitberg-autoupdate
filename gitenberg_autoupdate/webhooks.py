@@ -12,7 +12,7 @@ def gitensite(book):
     headers = {'x-gitenberg-secret': GITENBERG_SECRET}
     response = requests.post(GITENSITE_YAML_URL, json=book.meta.metadata, headers=headers)
     logging.info('Got from gitensite: %s' % response)
-    return response.ok
+    return response.status_code == 200
 
 def unglueit(book):
     repository = {}
@@ -21,4 +21,4 @@ def unglueit(book):
     payload = {'status_message': 'Passed', 'type': 'push', 'repository':repository}
     response = requests.post(UNGLUEIT_URL, data={'payload': json.dumps(payload)})
     logging.info('Got from unglueit: %s' % response)
-    return response.ok
+    return response.status_code == 200
