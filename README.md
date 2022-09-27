@@ -47,6 +47,7 @@ Configure the following environment variables (under Configuration > Software > 
     Otherwise, it won't start and is then apparently unrecoverable.
   * Don't set `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY`. The EBS instance
     role will be picked up automatically instead.
+  * `QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox"` (needed to let calibre make PDF with QT and Chromium)
 
 The EBS environment must be configured as follows for `webhook_server` environments:
   * Virtual machine instance profile: elasticbeanstalk-ec2-autoupdate
@@ -78,7 +79,7 @@ To run one of the servers locally in a Docker container identical to the one
 which will be used by EBS, use these commands:
 ```console
 $ docker build -f deploy/webhook_server/Dockerfile -t webhook_server ./ && docker run -i --env-file test_env -p 127.0.0.1:1234:80 webhook_server
-$ docker build -f deploy/autoupdate_worker/Dockerfile -t autoupdate_worker ./ && docker run -i --env-file test_env -p 127.0.0.1:1235:80 autoupdate_worker
+$ docker build -f deploy/autoupdate_worker/Dockerfile -t autoupdate_worker ./ && docker run -i --env-file test_env -p 0.0.0.0:1235:1235 -v /tmp:/tmp autoupdate_worker
 ```
 
 These commands rely on a file called `test_env` with the environment variables
@@ -89,7 +90,7 @@ specified above under [Development](#development) to be configured.
 You can use ngrok https://ngrok.com/ to send a github webhook to the auto-update server - it will put events on the configured queuing service.
 
 To test the local autoupdate worker, just send it a post with curl, for example
-```curl --data "GITenberg/Relativity-the-Special-and-General-Theory_5001 0.1.2" -v /tmp:/tmp http://127.0.0.1:1235/do_update
+```curl --data "Relativity-the-Special-and-General-Theory_5001 0.1.2" -v http://127.0.0.1:1235/do_update
 ```
 
 to redo a file of repo<tab>versions:
