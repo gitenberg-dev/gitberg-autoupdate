@@ -38,6 +38,10 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     # login just once
     cache = {}
 
+    def setup(self):
+        BaseHTTPServer.BaseHTTPRequestHandler.setup(self)
+        self.request.settimeout(60)
+
     def download_rdf(self):
         if not self._rdfcache:
             cf = ConfigFile()
