@@ -106,7 +106,6 @@ def make_ebook(b, tag):
         ebooks.build_epub()
         logging.info('epub for {} took {} seconds'.format(b.local_path, time.time() - time0))
         if os.path.exists("book.epub"):
-            subprocess.check_call(('ebook-convert', 'book.epub', 'book.mobi'))
             subprocess.check_call(('ebook-convert', 'book.epub', 'book.pdf'))
         logging.info('ebooks for {} took {} seconds'.format(b.local_path, time.time() - time0))
         ebooks.add_release(b, tag, ['book.epub', 'book.mobi', 'book.pdf'])
