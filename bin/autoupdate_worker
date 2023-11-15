@@ -28,6 +28,7 @@ import requests
 from docopt import docopt
 from gitenberg.util.catalog import Rdfcache
 from gitenberg.config import ConfigFile
+from gitenberg.clone import clone
 
 from gitenberg_autoupdate import __version__, ebooks, queue, util, webhooks
 
@@ -112,7 +113,7 @@ def make_ebook(b, tag):
         if os.path.exists("book.epub"):
             subprocess.check_call(('ebook-convert', 'book.epub', 'book.pdf'))
         logging.info('ebooks for {} took {} seconds'.format(b.local_path, time.time() - time0))
-        ebooks.add_release(b, tag, ['book.epub', 'book.mobi', 'book.pdf'])
+        ebooks.add_release(b, tag, ['book.epub', 'book.pdf'])
 
 def ratelimit_remaining(book):
     try:
@@ -126,13 +127,13 @@ def process_queued_update(repo_name, cache={}):
     (repo_name, tag) = repo_name_tag if len(repo_name_tag) == 2 else (repo_name, None)
     # intialize book
     logging.info('getting: {}'.format(repo_name))
-    b = gitenberg.actions.get_book(repo_name, cache=cache)
-    ratelimit_start = ratelimit_remaining(b)
-    logging.info('ratelimit_remaining[start]: {}'.format(ratelimit_remaining(b)))
-    if b.local_path:
-        b.remove()
+    b = None
     try:
-        b.clone_from_github() # if no local version, clones
+        local_repo = clone(repo_name)
+        b = gitenberg.actions.get_book(repo_name, cache=cache)
+        ratelimit_start = ratelimit_remaining(b)
+        logging.info('ratelimit_remaining[start]: {}'.format(ratelimit_remaining(b)))
+        b.parse_book_metadata() 
 
         # if it previously existed as a local repo, need to pull
         repo = b.local_repo.git
@@ -191,9 +192,9 @@ def process_queued_update(repo_name, cache={}):
     finally:
         # Make sure to always remove it to avoid filling up the disk.
         logging.info('cleaning up %s', repo_name)
-        if b.local_path:
+        if b and b.local_path:
             b.remove()
-        if b.local_repo: # change this after updating book.remove()
+        if b and b.local_repo: # change this after updating book.remove()
             b.local_repo = None
 
     return True
