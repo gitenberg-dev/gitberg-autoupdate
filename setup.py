@@ -29,7 +29,7 @@ setup(name='gitberg.autoupdate',
         'sh>=1',
       ],
       install_requires=[
-          'gitberg>=0.8.6',
+          'gitberg>=0.8.8',
           'boto3',
           'pyepub>=0.5.0',
       ],

@@ -193,8 +193,10 @@ def process_queued_update(repo_name, cache={}):
         # Make sure to always remove it to avoid filling up the disk.
         logging.info('cleaning up %s', repo_name)
         if b and b.local_path:
-            b.remove()
+            shutil.rmtree(b.local_path)
+
         if b and b.local_repo: # change this after updating book.remove()
+            b.local_repo.git.git.clear_cache()
             b.local_repo = None
 
     return True

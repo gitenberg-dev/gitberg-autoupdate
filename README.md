@@ -85,6 +85,8 @@ $ docker build -f deploy/autoupdate_worker/Dockerfile -t autoupdate_worker ./ &&
 These commands rely on a file called `test_env` with the environment variables
 specified above under [Development](#development) to be configured.
 
+the docker app will think it's not configured if the rdf.tar.bz2 file is less than 24 hours old
+
 #### Testing in Development
 
 You can use ngrok https://ngrok.com/ to send a github webhook to the auto-update server - it will put events on the configured queuing service.

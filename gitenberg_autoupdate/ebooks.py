@@ -181,15 +181,16 @@ def add_release(book, version, book_files):
         except (UnprocessableEntity, NotFoundError):
             logger.error("couldn't make or get release: {}".format(version))
             return
-
+    fns = [asset.name for asset in release.assets()]
     for book_fn in book_files:
         if os.path.exists(book_fn):
             with open(book_fn, 'rb') as book_file:
-                try:
-                    release.upload_asset(mimetype(book_fn), book_fn, book_file)
-                except UnprocessableEntity:
-                    # asset already exists
-                    logger.info("asset {} already exists".format(book_fn))
+                if book_fn not in fns:
+                    try:
+                        release.upload_asset(mimetype(book_fn), book_fn, book_file)
+                    except UnprocessableEntity:
+                        # asset already exists
+                        logger.info("asset {} already exists".format(book_fn))
         else:
             logger.info("file does not exist: {}".format(book_fn))
 
